@@ -47,6 +47,8 @@ cellsRouter.get(
         avgDownloadKbps: c.avgDownloadKbps,
         sampleCount: c.sampleCount,
         reportCount: c.reportCount,
+        predicted: c.predicted,
+        confidence: c.confidence,
       },
       geometry: { type: "Polygon" as const, coordinates: [cellPolygon(c._id)] },
     }));

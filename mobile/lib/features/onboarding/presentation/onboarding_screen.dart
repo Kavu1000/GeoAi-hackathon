@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../../app/router/routes.dart';
+import '../../../core/localization/locale_provider.dart';
 import '../../../core/storage/prefs.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -31,6 +33,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -52,7 +55,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: _next,
-                  child: Text(_page < 2 ? 'Next' : 'Get started'),
+                  child: Text(_page < 2 ? t.onboardingNext : t.onboardingGetStarted),
                 ),
               ),
             ),
@@ -67,7 +70,9 @@ class _LanguageStep extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return _StepScaffold(
-      title: 'ພາສາ / Language',
+      // Bilingual by design — this is the picker deciding which language to
+      // show everywhere else, so it can't itself depend on the chosen locale.
+      title: AppLocalizations.of(context)!.onboardingLanguageTitle,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -88,7 +93,10 @@ class _LangButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return OutlinedButton(
-      onPressed: () => ref.read(sharedPreferencesProvider).setString(PrefsKeys.locale, code),
+      onPressed: () {
+        ref.read(sharedPreferencesProvider).setString(PrefsKeys.locale, code);
+        ref.read(localeProvider.notifier).state = Locale(code);
+      },
       child: Text(label),
     );
   }
@@ -97,19 +105,17 @@ class _LangButton extends ConsumerWidget {
 class _PermissionStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
     return _StepScaffold(
-      title: 'Location access',
+      title: t.onboardingLocationTitle,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text(
-            'We use your location to map internet coverage near you. It is never shared with your identity attached.',
-            textAlign: TextAlign.center,
-          ),
+          Text(t.onboardingLocationBody, textAlign: TextAlign.center),
           const SizedBox(height: 16),
           OutlinedButton(
             onPressed: () => Permission.locationWhenInUse.request(),
-            child: const Text('Allow location'),
+            child: Text(t.onboardingAllowLocation),
           ),
         ],
       ),
@@ -122,13 +128,10 @@ class _ConsentStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const _StepScaffold(
-      title: 'Before you start',
-      child: Text(
-        'Signal samples are linked to a hex grid cell, not your exact path. '
-        'You can turn off background sampling at any time in Settings.',
-        textAlign: TextAlign.center,
-      ),
+    final t = AppLocalizations.of(context)!;
+    return _StepScaffold(
+      title: t.onboardingConsentTitle,
+      child: Text(t.onboardingConsentBody, textAlign: TextAlign.center),
     );
   }
 }

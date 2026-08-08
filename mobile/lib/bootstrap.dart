@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'app/app.dart';
+import 'core/map/tile_cache.dart';
 import 'core/storage/isar_service.dart';
 import 'core/storage/prefs.dart';
 import 'core/sync/background_task.dart';
@@ -11,6 +12,7 @@ Future<void> bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await IsarService.open();
+  await TileCache.init();
   final prefs = await SharedPreferences.getInstance();
 
   await BackgroundSync.init();

@@ -65,7 +65,7 @@ class BackgroundSync {
         backgroundSyncTaskName,
         backgroundSyncTaskName,
         frequency: const Duration(minutes: 15), // Android's floor for periodic tasks
-        constraints: Constraints(networkType: NetworkType.not_required),
+        constraints: Constraints(networkType: NetworkType.notRequired),
       );
 
   static Future<void> disable() => Workmanager().cancelByUniqueName(backgroundSyncTaskName);

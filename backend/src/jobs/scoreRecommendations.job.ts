@@ -1,11 +1,17 @@
 import { Cell } from "../models/Cell";
 import { Recommendation } from "../models/Recommendation";
 import { cellCentroid } from "../services/h3.service";
+import { populationProxyScore, nearestPopulationCenter } from "../services/populationProxy.service";
+import { generateAiSummaries, RecommendationCandidate } from "../services/recommendationAi.service";
 import { logger } from "../config/logger";
 
-// Ranks r7 areas that need a tower most: no/weak coverage + report volume as a
-// population/demand proxy. Swap the score formula for a real population join
-// (WorldPop / Open Buildings) once that data is wired up — see README.
+// MODEL step: ranks r7 areas that need a tower most. The ranking formula
+// blends no/weak coverage, report volume, and a population-density proxy
+// (see populationProxy.service.ts — a demo stand-in for a real WorldPop /
+// Meta HRSL / Google Open Buildings join). DeepSeek R1 (via OpenRouter) then
+// writes a human-readable reason for the top candidates; the AI never
+// changes the ranking itself, so the pipeline degrades gracefully to the
+// plain formula if OPENROUTER_API_KEY is unset or the call fails.
 export async function scoreRecommendations(): Promise<{ ranked: number }> {
   const groups = await Cell.aggregate([
     { $match: { status: { $in: ["red", "yellow"] } } },
@@ -16,21 +22,69 @@ export async function scoreRecommendations(): Promise<{ ranked: number }> {
         totalCells: { $sum: 1 },
         reportCount: { $sum: "$reportCount" },
         sampleCount: { $sum: "$sampleCount" },
+        avgConfidence: { $avg: "$confidence" },
+        predictedCells: { $sum: { $cond: ["$predicted", 1, 0] } },
       },
     },
   ]);
 
   const scored = groups
     .map((g) => {
-      const score = g.redCells * 3 + g.reportCount * 2 + Math.max(0, 5 - g.sampleCount);
+      const h3_r7 = g._id as string;
+      const [lng, lat] = cellCentroid(h3_r7);
+      const populationProxy = populationProxyScore(lat, lng);
+      const { name: nearestTown, distanceKm } = nearestPopulationCenter(lat, lng);
+      const avgConfidence = g.avgConfidence ?? 1;
+
+      // Population proxy is weighted like a fourth "report-equivalent" —
+      // a weak-coverage area near a populated town outranks an equally
+      // weak but empty one. The whole thing is then scaled by how
+      // confident we are in the underlying cells: a block of real
+      // measured "no signal" cells should outrank an equally bad-looking
+      // block that's mostly the model's low-confidence guess.
+      const rawScore =
+        g.redCells * 3 + g.reportCount * 2 + Math.max(0, 5 - g.sampleCount) + populationProxy * 4;
+      const score = rawScore * (0.5 + avgConfidence * 0.5);
+
       const reasons: string[] = [];
       if (g.redCells > 0) reasons.push(`${g.redCells} uncovered cell(s) nearby`);
       if (g.reportCount > 0) reasons.push(`${g.reportCount} user report(s)`);
       if (g.sampleCount < 5) reasons.push("low sample density");
-      return { h3_r7: g._id as string, score, reportCount: g.reportCount, sampleCount: g.sampleCount, reasons };
+      if (populationProxy > 0.05) reasons.push(`near ${nearestTown} (population proxy ${populationProxy.toFixed(2)})`);
+      if (g.predictedCells > 0)
+        reasons.push(`${g.predictedCells} predicted (unmeasured) cell(s), avg confidence ${avgConfidence.toFixed(2)}`);
+
+      return {
+        h3_r7,
+        score,
+        reportCount: g.reportCount,
+        sampleCount: g.sampleCount,
+        redCells: g.redCells,
+        totalCells: g.totalCells,
+        reasons,
+        populationProxy,
+        nearestTown,
+        distanceKm,
+        avgConfidence,
+        predictedCells: g.predictedCells,
+      };
     })
     .sort((a, b) => b.score - a.score)
     .slice(0, 200);
+
+  const candidates: RecommendationCandidate[] = scored.map((s) => ({
+    h3_r7: s.h3_r7,
+    redCells: s.redCells,
+    totalCells: s.totalCells,
+    reportCount: s.reportCount,
+    sampleCount: s.sampleCount,
+    populationProxy: s.populationProxy,
+    nearestTown: s.nearestTown,
+    distanceKm: s.distanceKm,
+    avgConfidence: s.avgConfidence,
+    predictedCells: s.predictedCells,
+  }));
+  const aiSummaries = await generateAiSummaries(candidates);
 
   await Promise.all(
     scored.map((s, i) =>
@@ -44,12 +98,18 @@ export async function scoreRecommendations(): Promise<{ ranked: number }> {
           reportCount: s.reportCount,
           sampleCount: s.sampleCount,
           reasons: s.reasons,
+          populationProxy: s.populationProxy,
+          avgConfidence: s.avgConfidence,
+          aiSummary: aiSummaries.get(s.h3_r7) ?? null,
         },
         { upsert: true }
       )
     )
   );
 
-  logger.info({ ranked: scored.length }, "recommendation scoring complete");
+  logger.info(
+    { ranked: scored.length, aiSummaries: aiSummaries.size },
+    "recommendation scoring complete"
+  );
   return { ranked: scored.length };
 }

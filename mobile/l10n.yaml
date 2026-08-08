@@ -1,0 +1,7 @@
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+output-localization-file: app_localizations.dart
+# Generate into a normal package file (not the flutter_gen synthetic
+# package) so imports are plain relative paths and don't depend on the
+# synthetic-package resolver behaving the same across Flutter versions.
+output-dir: lib/l10n/generated

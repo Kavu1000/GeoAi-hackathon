@@ -6,6 +6,8 @@ class CoverageCell {
   final double avgDownloadKbps;
   final int sampleCount;
   final int reportCount;
+  final bool predicted;
+  final double confidence;
   final List<LatLng> polygon;
 
   const CoverageCell({
@@ -14,6 +16,8 @@ class CoverageCell {
     required this.avgDownloadKbps,
     required this.sampleCount,
     required this.reportCount,
+    required this.predicted,
+    required this.confidence,
     required this.polygon,
   });
 
@@ -26,6 +30,8 @@ class CoverageCell {
       avgDownloadKbps: (props['avgDownloadKbps'] as num).toDouble(),
       sampleCount: props['sampleCount'] as int,
       reportCount: props['reportCount'] as int,
+      predicted: props['predicted'] as bool? ?? false,
+      confidence: (props['confidence'] as num?)?.toDouble() ?? 1.0,
       polygon: coords
           .map((c) => LatLng(((c as List)[1] as num).toDouble(), (c[0] as num).toDouble()))
           .toList(),

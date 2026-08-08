@@ -7,8 +7,9 @@ export function RecommendationsPage() {
     <div>
       <h1>Tower Siting Recommendations</h1>
       <p className="muted">
-        Ranked by unmet demand: uncovered cells nearby, user report volume, and sample density. Export this list to
-        planning teams.
+        Ranked by unmet demand: uncovered cells nearby, user report volume, sample density, and a population-density
+        proxy. DeepSeek R1 (via OpenRouter) blends those signals into a plain-language reason per area — export this
+        list to planning teams.
       </p>
 
       {isLoading && <p className="muted">Loading...</p>}
@@ -23,6 +24,8 @@ export function RecommendationsPage() {
               <th>Score</th>
               <th>Reports</th>
               <th>Samples</th>
+              <th>Pop. proxy</th>
+              <th>Confidence</th>
               <th>Why</th>
               <th>Status</th>
             </tr>
@@ -37,7 +40,12 @@ export function RecommendationsPage() {
                 <td>{rec.score.toFixed(1)}</td>
                 <td>{rec.reportCount}</td>
                 <td>{rec.sampleCount}</td>
-                <td className="comment-cell">{rec.reasons.join(", ")}</td>
+                <td>{rec.populationProxy.toFixed(2)}</td>
+                <td>{Math.round(rec.avgConfidence * 100)}%</td>
+                <td className="comment-cell">
+                  {rec.aiSummary ?? rec.reasons.join(", ")}
+                  {rec.aiSummary && <span className="ai-badge"> AI</span>}
+                </td>
                 <td>
                   <span className={`status-pill status-${rec.status}`}>{rec.status}</span>
                 </td>
@@ -45,7 +53,7 @@ export function RecommendationsPage() {
             ))}
             {data.length === 0 && (
               <tr>
-                <td colSpan={7} className="muted" style={{ textAlign: "center", padding: 24 }}>
+                <td colSpan={9} className="muted" style={{ textAlign: "center", padding: 24 }}>
                   No recommendations yet — need cell aggregation to run first.
                 </td>
               </tr>

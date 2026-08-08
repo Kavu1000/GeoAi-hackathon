@@ -269,6 +269,12 @@ select {
   margin-left: 0;
 }
 
+.legend-dot-predicted {
+  background: transparent;
+  border: 1.5px dashed var(--muted);
+  box-sizing: border-box;
+}
+
 .map-tooltip {
   position: absolute;
   top: 12px;
@@ -313,6 +319,19 @@ select {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.ai-badge {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.35rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  background: rgba(45, 212, 191, 0.18);
+  color: #5eead4;
+  vertical-align: middle;
 }
 
 .pagination {

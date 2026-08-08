@@ -18,6 +18,10 @@ export interface CellDoc {
   sampleCount: number;
   reportCount: number;
   operatorStats: OperatorStat[];
+  /** True if this cell has no real measurements and status/confidence came from predictionGrid.service.ts instead. */
+  predicted: boolean;
+  /** 0..1 — always 1 for measured cells; interpolation/prior strength for predicted ones. */
+  confidence: number;
   lastComputedAt: Date;
 }
 
@@ -42,6 +46,8 @@ const cellSchema = new Schema<CellDoc>(
         sampleCount: Number,
       },
     ],
+    predicted: { type: Boolean, default: false, index: true },
+    confidence: { type: Number, default: 1 },
     lastComputedAt: { type: Date, default: () => new Date() },
   },
   { _id: false }

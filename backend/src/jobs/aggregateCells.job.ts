@@ -82,6 +82,9 @@ export async function aggregateCells(): Promise<{ cellsUpdated: number }> {
           sampleCount,
           reportCount,
           operatorStats,
+          // Real data always wins over a prior prediction for this cell.
+          predicted: false,
+          confidence: 1,
           lastComputedAt: new Date(),
         },
         { upsert: true }

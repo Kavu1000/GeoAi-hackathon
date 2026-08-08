@@ -6,8 +6,14 @@ import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 import '../../../app/router/routes.dart';
 import '../../../app/theme/coverage_colors.dart';
+import '../../../core/map/tile_cache.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../domain/coverage_cell.dart';
-import 'map_controller.dart';
+// hide MapController: this file's own MapController (a Riverpod
+// AsyncNotifier, see map_controller.dart) collides by name with
+// flutter_map's MapController, which this screen also needs for the map
+// widget itself. We only ever use `visibleCellsProvider` from this import.
+import 'map_controller.dart' hide MapController;
 import 'widgets/legend_chip.dart';
 
 class MapScreen extends ConsumerStatefulWidget {
@@ -53,11 +59,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
     final cellsAsync = ref.watch(visibleCellsProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Coverage Map'),
+        title: Text(t.mapTitle),
         actions: [
           IconButton(icon: const Icon(Icons.settings_outlined), onPressed: () => context.push(Routes.settings)),
         ],
@@ -75,8 +82,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               TileLayer(
                 urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                 userAgentPackageName: 'com.laocoverage.app',
+                // Serves cached tiles offline (dead zones are the whole
+                // point of this app) and caches new ones when online.
+                tileProvider: TileCache.tileProvider(),
               ),
-              PolygonLayer(
+              PolygonLayer<Object>(
                 polygons: cellsAsync.value?.map(_toPolygon).toList() ?? const [],
               ),
             ],
@@ -93,26 +103,32 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             heroTag: 'report',
             onPressed: () => context.push(Routes.report),
             icon: const Icon(Icons.flag_outlined),
-            label: const Text('Report'),
+            label: Text(t.mapReportAction),
           ),
           const SizedBox(height: 12),
           FloatingActionButton.extended(
             heroTag: 'speedtest',
             onPressed: () => context.push(Routes.speedTest),
             icon: const Icon(Icons.speed_outlined),
-            label: const Text('Speed test'),
+            label: Text(t.mapSpeedTestAction),
           ),
         ],
       ),
     );
   }
 
-  Polygon _toPolygon(CoverageCell cell) {
-    return Polygon(
+  Polygon<Object> _toPolygon(CoverageCell cell) {
+    // Predicted (model-estimated) cells render lighter with a brighter,
+    // thicker border so they read as "our best guess", not a measurement —
+    // matches the "Predicted (model estimate)" legend entry. flutter_map's
+    // base Polygon has no built-in dashed-stroke option, so this leans on
+    // opacity/weight instead; swap in a real dashed StrokePattern if the
+    // installed flutter_map version supports one.
+    return Polygon<Object>(
       points: cell.polygon,
-      color: CoverageColors.forStatus(cell.status).withOpacity(0.45),
-      borderColor: Colors.white24,
-      borderStrokeWidth: 1,
+      color: CoverageColors.forStatus(cell.status).withValues(alpha: cell.predicted ? 0.22 : 0.45),
+      borderColor: cell.predicted ? Colors.white54 : Colors.white24,
+      borderStrokeWidth: cell.predicted ? 1.5 : 1,
     );
   }
 }

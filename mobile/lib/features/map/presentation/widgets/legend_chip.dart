@@ -1,31 +1,37 @@
 import 'package:flutter/material.dart';
 import '../../../../app/theme/coverage_colors.dart';
+import '../../../../l10n/generated/app_localizations.dart';
 
 class LegendChip extends StatelessWidget {
   const LegendChip({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.65),
+        color: Colors.black.withValues(alpha: 0.65),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
-        children: const [
-          _Dot(color: CoverageColors.green),
-          SizedBox(width: 4),
-          Text('Good', style: TextStyle(color: Colors.white, fontSize: 12)),
-          SizedBox(width: 10),
-          _Dot(color: CoverageColors.yellow),
-          SizedBox(width: 4),
-          Text('Slow', style: TextStyle(color: Colors.white, fontSize: 12)),
-          SizedBox(width: 10),
-          _Dot(color: CoverageColors.red),
-          SizedBox(width: 4),
-          Text('None', style: TextStyle(color: Colors.white, fontSize: 12)),
+        children: [
+          const _Dot(color: CoverageColors.green),
+          const SizedBox(width: 4),
+          Text(t.legendStrong, style: const TextStyle(color: Colors.white, fontSize: 12)),
+          const SizedBox(width: 10),
+          const _Dot(color: CoverageColors.yellow),
+          const SizedBox(width: 4),
+          Text(t.legendWeak, style: const TextStyle(color: Colors.white, fontSize: 12)),
+          const SizedBox(width: 10),
+          const _Dot(color: CoverageColors.red),
+          const SizedBox(width: 4),
+          Text(t.legendNoSignal, style: const TextStyle(color: Colors.white, fontSize: 12)),
+          const SizedBox(width: 10),
+          const _Dot(outlined: true),
+          const SizedBox(width: 4),
+          Text(t.legendPredicted, style: const TextStyle(color: Colors.white, fontSize: 12)),
         ],
       ),
     );
@@ -33,11 +39,20 @@ class LegendChip extends StatelessWidget {
 }
 
 class _Dot extends StatelessWidget {
-  final Color color;
-  const _Dot({required this.color});
+  final Color? color;
+  final bool outlined;
+  const _Dot({this.color, this.outlined = false});
 
   @override
   Widget build(BuildContext context) {
-    return Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle));
+    return Container(
+      width: 10,
+      height: 10,
+      decoration: BoxDecoration(
+        color: outlined ? Colors.transparent : color,
+        shape: BoxShape.circle,
+        border: outlined ? Border.all(color: Colors.white70, width: 1.2) : null,
+      ),
+    );
   }
 }

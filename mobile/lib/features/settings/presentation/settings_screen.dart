@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/storage/isar_service.dart';
+import '../../../core/storage/outbox_item.dart'; // for the isar.outboxItems collection extension
 import '../../../core/storage/prefs.dart';
 import '../../../core/sync/background_task.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -29,36 +31,37 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
+      appBar: AppBar(title: Text(t.settingsTitle)),
       body: ListView(
         children: [
           SwitchListTile(
-            title: const Text('Background sampling'),
-            subtitle: const Text('Periodically measure signal in the background to help map coverage'),
+            title: Text(t.settingsBackgroundSamplingTitle),
+            subtitle: Text(t.settingsBackgroundSamplingSubtitle),
             value: _backgroundSampling,
             onChanged: _onToggle,
           ),
           const Divider(),
           ListTile(
-            title: const Text('Delete my data'),
-            subtitle: const Text('Removes any pending unsynced samples and reports from this device'),
+            title: Text(t.settingsDeleteDataTitle),
+            subtitle: Text(t.settingsDeleteDataSubtitle),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => _confirmDelete(context),
+            onTap: () => _confirmDelete(context, t),
           ),
         ],
       ),
     );
   }
 
-  void _confirmDelete(BuildContext context) {
+  void _confirmDelete(BuildContext context, AppLocalizations t) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete local data?'),
-        content: const Text('This clears anything queued on this device that has not yet uploaded.'),
+        title: Text(t.settingsDeleteDialogTitle),
+        content: Text(t.settingsDeleteDialogBody),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t.settingsCancel)),
           TextButton(
             onPressed: () async {
               final isar = IsarService.instance;
@@ -66,11 +69,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               if (ctx.mounted) Navigator.pop(ctx);
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Local data cleared.')),
+                  SnackBar(content: Text(t.settingsDataCleared)),
                 );
               }
             },
-            child: const Text('Delete'),
+            child: Text(t.settingsDelete),
           ),
         ],
       ),

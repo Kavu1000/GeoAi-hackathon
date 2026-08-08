@@ -5,6 +5,7 @@ import { env } from "./config/env";
 import { logger } from "./config/logger";
 import { aggregateCells } from "./jobs/aggregateCells.job";
 import { scoreRecommendations } from "./jobs/scoreRecommendations.job";
+import { predictCoverage } from "./jobs/predictCoverage.job";
 
 async function main() {
   await connectDb();
@@ -21,8 +22,22 @@ async function main() {
     }
   });
 
+  // Full-country prediction infill is much heavier (tens of thousands of
+  // cells) and far slower-changing than real measurements, so it gets its
+  // own, less frequent schedule rather than riding along on every
+  // AGGREGATION_CRON tick.
+  cron.schedule(env.PREDICTION_CRON, async () => {
+    try {
+      await predictCoverage();
+      await scoreRecommendations();
+    } catch (err) {
+      logger.error({ err }, "prediction job failed");
+    }
+  });
+
   // Run once on boot so the map/dashboard aren't empty until the first tick.
   aggregateCells()
+    .then(() => predictCoverage())
     .then(() => scoreRecommendations())
     .catch((err) => logger.error({ err }, "initial aggregation failed"));
 }

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Map } from "react-map-gl/maplibre";
 import DeckGL from "@deck.gl/react";
 import { GeoJsonLayer } from "@deck.gl/layers";
+import { PathStyleExtension } from "@deck.gl/extensions";
 import type { PickingInfo } from "@deck.gl/core";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useCells } from "../../api/hooks";
@@ -14,6 +15,13 @@ const STATUS_RGBA: Record<string, [number, number, number, number]> = {
   yellow: [234, 179, 8, 140],
   red: [239, 68, 68, 140],
 };
+
+// Predicted (model-estimated) cells render lighter and with a dashed
+// outline so they read as "our best guess" rather than a measurement —
+// matches the "Predicted (model estimate)" legend entry.
+const PREDICTED_FILL_ALPHA = 70;
+const PREDICTED_LINE_COLOR: [number, number, number, number] = [255, 255, 255, 130];
+const MEASURED_LINE_COLOR: [number, number, number, number] = [255, 255, 255, 60];
 
 // VITE_MAP_STYLE can point at a hosted style URL (e.g. MapTiler) to override
 // the raw OSM raster tiles used by default.
@@ -31,9 +39,19 @@ export function CoverageMapPage() {
       data: data ?? { type: "FeatureCollection", features: [] },
       filled: true,
       stroked: true,
-      getFillColor: (f) => STATUS_RGBA[(f as CellFeature).properties.status] ?? [120, 120, 120, 100],
-      getLineColor: [255, 255, 255, 60],
+      getFillColor: (f) => {
+        const props = (f as CellFeature).properties;
+        const [r, g, b, a] = STATUS_RGBA[props.status] ?? [120, 120, 120, 100];
+        return [r, g, b, props.predicted ? PREDICTED_FILL_ALPHA : a];
+      },
+      getLineColor: (f) => ((f as CellFeature).properties.predicted ? PREDICTED_LINE_COLOR : MEASURED_LINE_COLOR),
+      getLineWidth: (f) => ((f as CellFeature).properties.predicted ? 1.5 : 1),
       lineWidthMinPixels: 1,
+      lineWidthUnits: "pixels",
+      // Dash predicted cells' borders only — measured cells get a solid line.
+      getDashArray: (f: CellFeature) => (f.properties.predicted ? [3, 2] : [0, 0]),
+      dashJustified: true,
+      extensions: [new PathStyleExtension({ dash: true })],
       pickable: true,
       onHover: (info: PickingInfo) => setHover((info.object as CellFeature | undefined)?.properties ?? null),
     }),
@@ -60,7 +78,7 @@ export function CoverageMapPage() {
         {hover && (
           <div className="map-tooltip">
             <div>
-              <b>Status:</b> {hover.status}
+              <b>Status:</b> {hover.status} {hover.predicted && <span className="ai-badge">PREDICTED</span>}
             </div>
             <div>
               <b>Avg download:</b> {Math.round(hover.avgDownloadKbps)} kbps
@@ -70,6 +88,9 @@ export function CoverageMapPage() {
             </div>
             <div>
               <b>Reports:</b> {hover.reportCount}
+            </div>
+            <div>
+              <b>Confidence:</b> {Math.round(hover.confidence * 100)}%
             </div>
           </div>
         )}
@@ -81,9 +102,10 @@ export function CoverageMapPage() {
 function Legend() {
   return (
     <div className="legend">
-      <span className="legend-dot" style={{ background: "#22c55e" }} /> Good
-      <span className="legend-dot" style={{ background: "#eab308" }} /> Slow
-      <span className="legend-dot" style={{ background: "#ef4444" }} /> None
+      <span className="legend-dot" style={{ background: "#22c55e" }} /> Strong / stable
+      <span className="legend-dot" style={{ background: "#eab308" }} /> Weak / unstable
+      <span className="legend-dot" style={{ background: "#ef4444" }} /> No signal
+      <span className="legend-dot legend-dot-predicted" /> Predicted (model estimate)
     </div>
   );
 }

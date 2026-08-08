@@ -11,3 +11,4 @@ android/.gradle
 android/local.properties
 *.g.dart
 *.freezed.dart
+lib/l10n/generated/

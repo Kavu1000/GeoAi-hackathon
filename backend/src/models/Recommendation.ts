@@ -11,6 +11,12 @@ export interface RecommendationDoc {
   reportCount: number;
   sampleCount: number;
   reasons: string[];
+  /** 0..1 gravity-modeled population-density proxy for the area (see populationProxy.service.ts). */
+  populationProxy: number;
+  /** 0..1 — how much of this area's status comes from real measurements (1) vs. the model's prediction/interpolation (lower). */
+  avgConfidence: number;
+  /** DeepSeek R1-generated explanation blending signal gap, population proxy, and prediction confidence; null if AI is disabled or the call failed. */
+  aiSummary: string | null;
   status: RecommendationStatus;
   createdAt: Date;
 }
@@ -26,6 +32,9 @@ const recommendationSchema = new Schema<RecommendationDoc>({
   reportCount: { type: Number, default: 0 },
   sampleCount: { type: Number, default: 0 },
   reasons: [{ type: String }],
+  populationProxy: { type: Number, default: 0 },
+  avgConfidence: { type: Number, default: 1 },
+  aiSummary: { type: String, default: null },
   status: { type: String, enum: ["proposed", "accepted", "built"], default: "proposed" },
   createdAt: { type: Date, default: () => new Date() },
 });

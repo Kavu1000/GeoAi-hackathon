@@ -8,6 +8,8 @@ export interface CellFeature {
     avgDownloadKbps: number;
     sampleCount: number;
     reportCount: number;
+    predicted: boolean;
+    confidence: number;
   };
   geometry: { type: "Polygon"; coordinates: number[][][] };
 }
@@ -49,6 +51,9 @@ export interface Recommendation {
   reportCount: number;
   sampleCount: number;
   reasons: string[];
+  populationProxy: number;
+  avgConfidence: number;
+  aiSummary: string | null;
   status: "proposed" | "accepted" | "built";
 }
 

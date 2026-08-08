@@ -12,8 +12,6 @@ class LocationService {
   Future<Position?> getCurrentPosition() async {
     if (!await ensurePermission()) return null;
     if (!await Geolocator.isLocationServiceEnabled()) return null;
-    return Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
-    );
+    return Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
   }
 }
