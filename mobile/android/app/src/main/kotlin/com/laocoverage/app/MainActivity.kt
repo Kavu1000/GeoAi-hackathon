@@ -1,0 +1,59 @@
+package com.laocoverage.app
+
+import android.telephony.SignalStrength
+import android.telephony.TelephonyManager
+import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.MethodChannel
+
+class MainActivity : FlutterActivity() {
+    private val channelName = "lao_coverage/signal"
+
+    override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
+        super.configureFlutterEngine(flutterEngine)
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channelName).setMethodCallHandler { call, result ->
+            if (call.method == "read") {
+                result.success(readSignal())
+            } else {
+                result.notImplemented()
+            }
+        }
+    }
+
+    private fun readSignal(): Map<String, Any?> {
+        val tm = getSystemService(TELEPHONY_SERVICE) as TelephonyManager
+        val networkType = networkTypeName(tm.dataNetworkType)
+        val operatorName = tm.networkOperatorName
+
+        // SignalStrength.getCellSignalStrengths() requires API 30+; below that
+        // we fall back to the legacy getLevel()-only accessor.
+        val dbm: Int? = try {
+            @Suppress("DEPRECATION")
+            val strength: SignalStrength? = tm.signalStrength
+            strength?.let {
+                val cellStrengths = it.cellSignalStrengths
+                if (cellStrengths.isNotEmpty()) cellStrengths[0].dbm else null
+            }
+        } catch (e: SecurityException) {
+            null // READ_PHONE_STATE not granted
+        }
+
+        return mapOf(
+            "dbm" to dbm,
+            "networkType" to networkType,
+            "operatorName" to operatorName
+        )
+    }
+
+    private fun networkTypeName(type: Int): String = when (type) {
+        TelephonyManager.NETWORK_TYPE_NR -> "5g"
+        TelephonyManager.NETWORK_TYPE_LTE -> "4g"
+        TelephonyManager.NETWORK_TYPE_HSPA,
+        TelephonyManager.NETWORK_TYPE_HSPAP,
+        TelephonyManager.NETWORK_TYPE_UMTS -> "3g"
+        TelephonyManager.NETWORK_TYPE_EDGE,
+        TelephonyManager.NETWORK_TYPE_GPRS -> "2g"
+        else -> "none"
+    }
+}
