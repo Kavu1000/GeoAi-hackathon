@@ -54,11 +54,12 @@ const listSchema = z.object({
   maxLat: z.coerce.number().optional(),
 });
 
-// Dashboard-only: browse and triage reports.
+// Any signed-in user can browse reports — the public client site plots
+// them as pins on its coverage map (that's the whole point of crowd-sourced
+// reports). Only triage (PATCH below) is restricted to operator/admin.
 reportsRouter.get(
   "/",
   requireAuth,
-  requireRole("operator", "admin"),
   asyncHandler(async (req, res) => {
     const q = listSchema.parse(req.query);
     const filter: Record<string, unknown> = {};

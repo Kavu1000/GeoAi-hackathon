@@ -326,6 +326,54 @@ textarea {
   margin-top: 1.25rem;
 }
 
+.speedtest-panel {
+  max-width: 420px;
+  margin: 0 auto;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.speedtest-busy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 1.5rem 0;
+}
+
+.speedtest-spinner {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 3px solid var(--panel-border);
+  border-top-color: var(--accent);
+  animation: speedtest-spin 0.8s linear infinite;
+}
+
+@keyframes speedtest-spin {
+  to { transform: rotate(360deg); }
+}
+
+.speedtest-result {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+}
+
+.speedtest-kbps {
+  font-size: 2.75rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.speedtest-unit {
+  color: var(--muted);
+  font-size: 1rem;
+}
+
 @media (max-width: 700px) {
   .shell { display: block; height: auto; min-height: 100%; }
   .sidebar { width: 100%; min-height: auto; padding: 0.9rem 1rem; border-right: 0; border-bottom: 1px solid var(--panel-border); }

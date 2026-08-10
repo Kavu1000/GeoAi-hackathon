@@ -2,7 +2,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { api } from "./client";
 import { useAuthStore } from "../store/authStore";
 import type { Bbox } from "../store/mapStore";
-import type { CellFeatureCollection, CreateReportPayload, Report, ReportsPage } from "./types";
+import type { CellFeatureCollection, CreateReportPayload, MeasurementSample, Report, ReportsPage } from "./types";
 
 export function useLogin() {
   const setSession = useAuthStore((s) => s.setSession);
@@ -59,6 +59,17 @@ export function useCreateReport() {
   return useMutation({
     mutationFn: async (payload: CreateReportPayload) => {
       const { data } = await api.post<Report>("/reports", payload);
+      return data;
+    },
+  });
+}
+
+// Submits one speed-test sample. The backend endpoint takes a batch so this
+// always sends an array of one — same contract the mobile app's outbox uses.
+export function useSubmitMeasurement() {
+  return useMutation({
+    mutationFn: async (sample: MeasurementSample) => {
+      const { data } = await api.post<{ inserted: number }>("/measurements/batch", { samples: [sample] });
       return data;
     },
   });

@@ -4,6 +4,7 @@ import { useAuthStore } from "../../store/authStore";
 const links: { to: string; label: string; end?: boolean }[] = [
   { to: "/", label: "Coverage Map", end: true },
   { to: "/report", label: "Report coverage" },
+  { to: "/speedtest", label: "Test my speed" },
 ];
 
 export function AppLayout() {

@@ -53,3 +53,21 @@ export interface ReportsPage {
   page: number;
   limit: number;
 }
+
+// Mirrors the mobile app's speed-test sample shape (see
+// mobile/lib/features/measurement/domain/measurement_sample.dart) so both
+// clients feed the same /measurements/batch contract.
+export type NetworkType = "none" | "2g" | "3g" | "4g" | "5g" | "wifi";
+
+export interface MeasurementSample {
+  lat: number;
+  lng: number;
+  operator?: string;
+  networkType: NetworkType;
+  signalDbm?: number;
+  latencyMs?: number;
+  downloadKbps?: number;
+  uploadKbps?: number;
+  source: "auto" | "speedtest";
+  recordedAt: string;
+}
