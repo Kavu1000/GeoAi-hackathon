@@ -7,7 +7,7 @@ import 'signal_reading.dart';
 /// null and the app falls back to speed-test-only measurements.
 /// See android/app/src/main/kotlin/.../MainActivity.kt for the native side.
 class SignalService {
-  static const _channel = MethodChannel('lao_coverage/signal');
+  static const _channel = MethodChannel('connect4all/signal');
 
   Future<SignalReading?> read() async {
     if (!Platform.isAndroid) return null;

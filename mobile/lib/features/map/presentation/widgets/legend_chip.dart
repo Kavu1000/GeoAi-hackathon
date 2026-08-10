@@ -8,32 +8,54 @@ class LegendChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context)!;
+    final tiers = <String, String>{
+      'none': t.legendNoSignal,
+      '2g': t.legend2g,
+      '3g': t.legend3g,
+      '4g': t.legend4g,
+      '4g_plus': t.legend4gPlus,
+      '5g': t.legend5g,
+    };
+    // 7 items (6 network tiers + predicted) don't fit one row on a phone
+    // screen the way the old 4-item chip did — Wrap flows them onto as many
+    // rows as the available width needs, so everything stays visible
+    // without a scroll gesture the user has to discover.
     return Container(
+      constraints: const BoxConstraints(maxWidth: 260),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.65),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(12),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+      child: Wrap(
+        spacing: 10,
+        runSpacing: 4,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          const _Dot(color: CoverageColors.green),
-          const SizedBox(width: 4),
-          Text(t.legendStrong, style: const TextStyle(color: Colors.white, fontSize: 12)),
-          const SizedBox(width: 10),
-          const _Dot(color: CoverageColors.yellow),
-          const SizedBox(width: 4),
-          Text(t.legendWeak, style: const TextStyle(color: Colors.white, fontSize: 12)),
-          const SizedBox(width: 10),
-          const _Dot(color: CoverageColors.red),
-          const SizedBox(width: 4),
-          Text(t.legendNoSignal, style: const TextStyle(color: Colors.white, fontSize: 12)),
-          const SizedBox(width: 10),
-          const _Dot(outlined: true),
-          const SizedBox(width: 4),
-          Text(t.legendPredicted, style: const TextStyle(color: Colors.white, fontSize: 12)),
+          for (final entry in tiers.entries)
+            _LegendEntry(color: CoverageColors.forStatus(entry.key), label: entry.value),
+          _LegendEntry(outlined: true, label: t.legendPredicted),
         ],
       ),
+    );
+  }
+}
+
+class _LegendEntry extends StatelessWidget {
+  final Color? color;
+  final bool outlined;
+  final String label;
+  const _LegendEntry({this.color, this.outlined = false, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _Dot(color: color, outlined: outlined),
+        const SizedBox(width: 4),
+        Text(label, style: const TextStyle(color: Colors.white, fontSize: 12)),
+      ],
     );
   }
 }

@@ -1,6 +1,5 @@
 import { Schema, model, Types } from "mongoose";
 
-export type ReportCategory = "no_signal" | "slow" | "outage";
 export type ReportStatus = "new" | "reviewed" | "resolved";
 
 export interface ReportDoc {
@@ -9,7 +8,9 @@ export interface ReportDoc {
   location: { type: "Point"; coordinates: [number, number] };
   h3_r7: string;
   h3_r8: string;
-  category: ReportCategory;
+  category: string;
+  signal_type?: string;
+  province?: string;
   operator?: string;
   comment?: string;
   status: ReportStatus;
@@ -24,7 +25,9 @@ const reportSchema = new Schema<ReportDoc>({
   },
   h3_r7: { type: String, required: true, index: true },
   h3_r8: { type: String, required: true, index: true },
-  category: { type: String, enum: ["no_signal", "slow", "outage"], required: true },
+  category: { type: String, required: true },
+  signal_type: { type: String },
+  province: { type: String },
   operator: { type: String },
   comment: { type: String, maxlength: 500 },
   status: { type: String, enum: ["new", "reviewed", "resolved"], default: "new", index: true },

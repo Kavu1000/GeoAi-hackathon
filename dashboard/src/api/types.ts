@@ -1,4 +1,6 @@
-export type CellStatus = "green" | "yellow" | "red";
+// Network generation actually present in a cell, worst to best. See
+// networkStatus.ts for the ordered list, labels, and colors.
+export type CellStatus = "none" | "2g" | "3g" | "4g" | "4g_plus" | "5g";
 
 export interface CellFeature {
   type: "Feature";
@@ -19,7 +21,6 @@ export interface CellFeatureCollection {
   features: CellFeature[];
 }
 
-export type ReportCategory = "no_signal" | "slow" | "outage";
 export type ReportStatus = "new" | "reviewed" | "resolved";
 
 export interface Report {
@@ -28,7 +29,9 @@ export interface Report {
   location: { type: "Point"; coordinates: [number, number] };
   h3_r7: string;
   h3_r8: string;
-  category: ReportCategory;
+  category: string;
+  signal_type?: string;
+  province?: string;
   operator?: string;
   comment?: string;
   status: ReportStatus;
@@ -57,6 +60,14 @@ export interface Recommendation {
   status: "proposed" | "accepted" | "built";
 }
 
+export interface RegionStat {
+  name: string;
+  totalCells: number;
+  counts: Record<CellStatus, number>;
+  wellServedPct: number; // % of cells at 4G or better
+  avgConfidence: number;
+}
+
 export interface StatsOverview {
   totalCells: number;
   coveragePct: number;
@@ -64,4 +75,24 @@ export interface StatsOverview {
   totalMeasurements: number;
   openReports: number;
   last24hSamples: number;
+  regions: RegionStat[];
+}
+
+export type UserRole = "resident" | "traveller" | "operator" | "admin";
+
+export interface AppUser {
+  _id: string;
+  email?: string;
+  deviceId: string;
+  role: UserRole;
+  locale: "lo" | "en";
+  points: number;
+  createdAt: string;
+}
+
+export interface UsersPageResult {
+  items: AppUser[];
+  total: number;
+  page: number;
+  limit: number;
 }

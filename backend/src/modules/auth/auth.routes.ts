@@ -50,6 +50,33 @@ authRouter.post(
   })
 );
 
+const signupSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8),
+  locale: z.enum(["lo", "en"]).default("lo"),
+  // Public self-signup is deliberately capped to resident/traveller — role
+  // is never taken from client input beyond this choice, so there is no way
+  // for a visitor to grant themselves operator/admin here.
+  role: z.enum(["resident", "traveller"]).default("resident"),
+});
+
+// Public signup for the client web site (residents/travellers browsing the
+// map). Kept separate from /register, which is for dashboard operator/admin
+// accounts, so this endpoint can never be used to create a privileged user.
+authRouter.post(
+  "/signup",
+  asyncHandler(async (req, res) => {
+    const { email, password, locale, role } = signupSchema.parse(req.body);
+    const existing = await User.findOne({ email });
+    if (existing) throw new ApiError(409, "email_taken");
+    const passwordHash = await bcrypt.hash(password, 12);
+    const user = await User.create({ email, passwordHash, role, locale, deviceId: `client-${email}` });
+    const accessToken = signAccessToken({ sub: user._id.toString(), role: user.role });
+    const refreshToken = signRefreshToken({ sub: user._id.toString() });
+    res.status(201).json({ accessToken, refreshToken, user: { id: user._id, role: user.role, email: user.email } });
+  })
+);
+
 const loginSchema = z.object({ email: z.string().email(), password: z.string() });
 
 authRouter.post(

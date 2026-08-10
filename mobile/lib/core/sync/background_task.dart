@@ -12,7 +12,7 @@ import '../telephony/signal_service.dart';
 import 'outbox_dao.dart';
 import 'sync_engine.dart';
 
-const backgroundSyncTaskName = 'lao_coverage.periodic_sample';
+const backgroundSyncTaskName = 'connect4all.periodic_sample';
 
 /// Runs in a separate background isolate (no access to the app's Riverpod
 /// container), so it builds its own Dio/Isar instances from scratch. Reads

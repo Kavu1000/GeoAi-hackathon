@@ -24,20 +24,28 @@ class ReportController extends Notifier<ReportSubmitState> {
   @override
   ReportSubmitState build() => const ReportSubmitState();
 
-  Future<void> submit({required ReportCategory category, String? operator, String? comment}) async {
+  Future<void> submit({
+    required SignalType signalType,
+    MobileOperator? operator,
+    String? province,
+    String? comment,
+  }) async {
     state = const ReportSubmitState(status: ReportSubmitStatus.submitting);
     try {
       final position = await LocationService().getCurrentPosition();
       if (position == null) {
-        state = const ReportSubmitState(status: ReportSubmitStatus.error, error: 'Location permission required');
+        state = const ReportSubmitState(
+            status: ReportSubmitStatus.error,
+            error: 'Location permission required');
         return;
       }
 
       final payload = ReportPayload(
         lat: position.latitude,
         lng: position.longitude,
-        category: category,
+        signalType: signalType,
         operator: operator,
+        province: province,
         comment: comment,
       );
 
@@ -52,7 +60,8 @@ class ReportController extends Notifier<ReportSubmitState> {
 
       state = const ReportSubmitState(status: ReportSubmitStatus.done);
     } catch (e) {
-      state = ReportSubmitState(status: ReportSubmitStatus.error, error: e.toString());
+      state =
+          ReportSubmitState(status: ReportSubmitStatus.error, error: e.toString());
     }
   }
 }

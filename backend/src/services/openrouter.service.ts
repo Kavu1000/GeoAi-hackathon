@@ -36,7 +36,7 @@ export async function chatComplete(messages: ChatMessage[]): Promise<string | nu
         "Content-Type": "application/json",
         // OpenRouter asks for these on free/attributed usage; harmless if ignored.
         "HTTP-Referer": "https://github.com/lao-rural-connectivity-map",
-        "X-Title": "RuralNet Map",
+        "X-Title": "Connect4All",
       },
       body: JSON.stringify({
         model: env.OPENROUTER_MODEL,

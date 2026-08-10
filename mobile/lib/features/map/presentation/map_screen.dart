@@ -81,7 +81,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             children: [
               TileLayer(
                 urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'com.laocoverage.app',
+                userAgentPackageName: 'com.connect4all.app',
                 // Serves cached tiles offline (dead zones are the whole
                 // point of this app) and caches new ones when online.
                 tileProvider: TileCache.tileProvider(),

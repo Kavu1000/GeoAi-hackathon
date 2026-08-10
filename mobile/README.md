@@ -1,4 +1,4 @@
-# Lao Coverage — mobile app (Flutter)
+# Connect4All — mobile app (Flutter)
 
 Coverage map, manual speed test, and issue reporting for residents and
 travellers. Works offline: every measurement/report writes to a local Isar
@@ -25,7 +25,7 @@ platform channels, WorkManager, FMTC's ObjectBox store) is still unverified.
 # 1. Generate platform folders (android/, ios/, etc). Since lib/ and
 #    pubspec.yaml already exist, this only adds what's missing — it will
 #    NOT overwrite the hand-written app/ and features/ code.
-flutter create . --org com.laocoverage --project-name lao_coverage
+flutter create . --org com.connect4all --project-name connect4all
 
 # 2. Re-apply the two files this repo already customized, since
 #    `flutter create` regenerates the Android project fresh:

@@ -1,4 +1,4 @@
-# RuralNet Map (Lao Rural Connectivity Map)
+# Connect4All (Lao Rural Connectivity Map)
 
 > *See before you go. Build where it matters.*
 
@@ -80,7 +80,7 @@ npm run dev         # http://localhost:5173
 
 ```bash
 cd mobile
-flutter create . --org com.laocoverage --project-name lao_coverage
+flutter create . --org com.connect4all --project-name connect4all
 flutter pub get     # also generates lib/l10n/generated/ (Lao + English)
 dart run build_runner build --delete-conflicting-outputs
 flutter run --dart-define=API_BASE_URL=http://10.0.2.2:4000
@@ -131,6 +131,21 @@ would otherwise overwrite) and current verification status.
   throughput measurement) → measurement submission, report form, offline
   outbox + sync engine + WorkManager background sampling, settings
   (background toggle, clear local data), full Lao-first localization.
+
+## Coverage taxonomy
+
+Cells are classified by **network generation** — None / 2G / 3G / 4G / 4G+ /
+5G — not a generic signal-quality score, so the map answers "what
+technology works here" directly. Colors (gray → blue → green → orange →
+crimson → purple) are validated for colorblind separation and contrast
+against both the dashboard's white surface and the mobile app's dark one
+(see `dashboard/src/api/networkStatus.ts` and
+`mobile/lib/app/theme/coverage_colors.dart` — same hex values in both).
+"4G+" is a throughput heuristic (4G readings averaging ≥15 Mbps), not true
+carrier-aggregation detection — Android's basic network-type API doesn't
+expose that distinction. Tower-siting recommendations
+([backend/src/jobs/scoreRecommendations.job.ts](backend/src/jobs/scoreRecommendations.job.ts))
+treat anything below 4G as underserved.
 
 ## Known simplifications (by design, for hackathon scope)
 

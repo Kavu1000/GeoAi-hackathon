@@ -1,4 +1,4 @@
-package com.laocoverage.app
+package com.connect4all.app
 
 import android.telephony.SignalStrength
 import android.telephony.TelephonyManager
@@ -7,7 +7,7 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
-    private val channelName = "lao_coverage/signal"
+    private val channelName = "connect4all/signal"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)

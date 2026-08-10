@@ -15,7 +15,14 @@ const BATCH_SIZE = 1000;
 // has something plausible to show — this is not a measurement, and the
 // "predicted" flag + confidence score are what tell the UI (and the user)
 // that it's an estimate, not ground truth.
-const STATUS_KBPS_ESTIMATE: Record<CellStatus, number> = { green: 6000, yellow: 1500, red: 0 };
+const STATUS_KBPS_ESTIMATE: Record<CellStatus, number> = {
+  none: 0,
+  "2g": 50,
+  "3g": 1500,
+  "4g": 15000,
+  "4g_plus": 35000,
+  "5g": 80000,
+};
 
 // MODEL step, infill half: fills in every r7 hex across Laos that doesn't
 // already have real measurement/report data, using interpolation from

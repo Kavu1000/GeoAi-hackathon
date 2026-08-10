@@ -1,11 +1,17 @@
 import { Schema, model } from "mongoose";
 
-export type CellStatus = "green" | "yellow" | "red";
+// Network generation actually present in a cell — the MAP's primary
+// dimension. Ordered worst to best; several services (prediction scoring,
+// recommendation ranking) rely on this order, not just the string values.
+export type CellStatus = "none" | "2g" | "3g" | "4g" | "4g_plus" | "5g";
+export const CELL_STATUS_VALUES: CellStatus[] = ["none", "2g", "3g", "4g", "4g_plus", "5g"];
 
 export interface OperatorStat {
   operator: string;
   avgDownloadKbps: number;
   sampleCount: number;
+  /** This operator's own network status in this cell — can differ from the cell's overall (best-across-operators) status. */
+  status: CellStatus;
 }
 
 export interface CellDoc {
@@ -33,7 +39,7 @@ const cellSchema = new Schema<CellDoc>(
       type: { type: String, enum: ["Point"], required: true },
       coordinates: { type: [Number], required: true },
     },
-    status: { type: String, enum: ["green", "yellow", "red"], required: true, index: true },
+    status: { type: String, enum: CELL_STATUS_VALUES, required: true, index: true },
     avgDownloadKbps: { type: Number, default: 0 },
     avgSignalDbm: { type: Number, default: null },
     sampleCount: { type: Number, default: 0 },
@@ -44,6 +50,7 @@ const cellSchema = new Schema<CellDoc>(
         operator: String,
         avgDownloadKbps: Number,
         sampleCount: Number,
+        status: { type: String, enum: CELL_STATUS_VALUES },
       },
     ],
     predicted: { type: Boolean, default: false, index: true },

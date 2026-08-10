@@ -1,7 +1,7 @@
 {
   "@@locale": "lo",
 
-  "appTitle": "RuralNet Map",
+  "appTitle": "Connect4All",
 
   "onboardingLanguageTitle": "ພາສາ / Language",
   "onboardingNext": "ຕໍ່ໄປ",
@@ -15,9 +15,12 @@
   "mapTitle": "ແຜນທີ່ຄວາມຄອບຄຸມ",
   "mapReportAction": "ລາຍງານ",
   "mapSpeedTestAction": "ທົດສອບຄວາມໄວ",
-  "legendStrong": "ແຮງ",
-  "legendWeak": "ອ່ອນ",
   "legendNoSignal": "ບໍ່ມີສັນຍານ",
+  "legend2g": "2G",
+  "legend3g": "3G",
+  "legend4g": "4G",
+  "legend4gPlus": "4G+",
+  "legend5g": "5G",
   "legendPredicted": "ພະຍາກອນ",
 
   "settingsTitle": "ການຕັ້ງຄ່າ",
@@ -31,14 +34,16 @@
   "settingsDelete": "ລຶບ",
   "settingsDataCleared": "ລຶບຂໍ້ມູນໃນເຄື່ອງແລ້ວ.",
 
-  "reportTitle": "ລາຍງານບັນຫາ",
-  "reportPrompt": "ທ່ານກຳລັງພົບບັນຫາຫຍັງ?",
-  "reportCategoryNoSignal": "ບໍ່ມີສັນຍານ",
-  "reportCategorySlow": "ອິນເຕີເນັດຊ້າ",
-  "reportCategoryOutage": "ສັນຍານຂາດ",
-  "reportOperatorLabel": "ຜູ້ໃຫ້ບໍລິການ (ບໍ່ບັງຄັບ)",
+  "reportTitle": "ລາຍງານສັນຍານອິນເຕີເນັດ",
+  "reportPrompt": "ລາຍງານລະベルສັນຍານອິນເຕີເນັດຢູ່ຈຸດຂອງທ່ານ",
+  "reportSignalTypeLabel": "ລະベルສັນຍານ (Signal Type)",
+  "reportOperatorLabel": "ຄ່າຍ / ຜູ້ໃຫ້ບໍລິການ (Operator)",
+  "reportSelectOperatorHint": "-- ເລືອກຄ່າຍ --",
+  "reportProvinceLabel": "ແຂວງ (Province)",
+  "reportSelectProvinceHint": "-- ເລືອກແຂວງ --",
   "reportCommentLabel": "ຄຳເຫັນ (ບໍ່ບັງຄັບ)",
-  "reportSubmit": "ສົ່ງ",
+  "reportCommentHint": "ເພີ່ມລາຍລະອຽດເພີ່ມເຕີມ...",
+  "reportSubmit": "ສົ່ງລາຍງານ",
   "reportSaved": "ບັນທຶກລາຍງານແລ້ວ. ຂອບໃຈ.",
   "reportError": "ບໍ່ສາມາດບັນທຶກໄດ້: {error}",
 

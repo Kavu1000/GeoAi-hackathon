@@ -19,7 +19,7 @@ export function LoginPage() {
   return (
     <div className="login-page">
       <form className="login-card" onSubmit={onSubmit}>
-        <h1>Lao Coverage Dashboard</h1>
+        <h1>Connect4All Dashboard</h1>
         <p className="muted">Operator / admin sign in</p>
         <label>
           Email

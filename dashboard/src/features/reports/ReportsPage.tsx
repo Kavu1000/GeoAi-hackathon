@@ -39,8 +39,9 @@ export function ReportsPage() {
             <thead>
               <tr>
                 <th>Created</th>
-                <th>Category</th>
+                <th>Signal Type</th>
                 <th>Operator</th>
+                <th>Province</th>
                 <th>Comment</th>
                 <th>Cell (r8)</th>
                 <th>Status</th>
@@ -48,37 +49,43 @@ export function ReportsPage() {
               </tr>
             </thead>
             <tbody>
-              {data.items.map((r) => (
-                <tr key={r._id}>
-                  <td>{new Date(r.createdAt).toLocaleString()}</td>
-                  <td>
-                    <span className={`badge badge-${r.category}`}>{r.category}</span>
-                  </td>
-                  <td>{r.operator ?? "—"}</td>
-                  <td className="comment-cell">{r.comment ?? "—"}</td>
-                  <td>
-                    <code>{r.h3_r8}</code>
-                  </td>
-                  <td>
-                    <span className={`status-pill status-${r.status}`}>{r.status}</span>
-                  </td>
-                  <td>
-                    <select
-                      value={r.status}
-                      onChange={(e) => updateStatus.mutate({ id: r._id, status: e.target.value as ReportStatus })}
-                    >
-                      {STATUS_OPTIONS.map((s) => (
-                        <option key={s} value={s}>
-                          {s}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                </tr>
-              ))}
+              {data.items.map((r) => {
+                const signalDisplay = r.signal_type || r.category || "—";
+                return (
+                  <tr key={r._id}>
+                    <td>{new Date(r.createdAt).toLocaleString()}</td>
+                    <td>
+                      <span className={`badge badge-${signalDisplay.toLowerCase().replace(/[^a-z0-9]/g, "")}`}>
+                        {signalDisplay}
+                      </span>
+                    </td>
+                    <td>{r.operator ?? "—"}</td>
+                    <td>{r.province ?? "—"}</td>
+                    <td className="comment-cell">{r.comment ?? "—"}</td>
+                    <td>
+                      <code>{r.h3_r8}</code>
+                    </td>
+                    <td>
+                      <span className={`status-pill status-${r.status}`}>{r.status}</span>
+                    </td>
+                    <td>
+                      <select
+                        value={r.status}
+                        onChange={(e) => updateStatus.mutate({ id: r._id, status: e.target.value as ReportStatus })}
+                      >
+                        {STATUS_OPTIONS.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                  </tr>
+                );
+              })}
               {data.items.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="muted" style={{ textAlign: "center", padding: 24 }}>
+                  <td colSpan={8} className="muted" style={{ textAlign: "center", padding: 24 }}>
                     No reports for this filter.
                   </td>
                 </tr>

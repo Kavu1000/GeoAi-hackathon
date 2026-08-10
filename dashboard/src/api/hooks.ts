@@ -3,12 +3,15 @@ import { api } from "./client";
 import { useAuthStore } from "../store/authStore";
 import type { Bbox } from "../store/mapStore";
 import type {
+  AppUser,
   CellFeatureCollection,
   Recommendation,
   Report,
   ReportsPage,
   ReportStatus,
   StatsOverview,
+  UserRole,
+  UsersPageResult,
 } from "./types";
 
 export function useLogin() {
@@ -56,6 +59,19 @@ export function useReports(params: { status?: ReportStatus; page: number }) {
   });
 }
 
+// Report pins for the coverage map — everything in the current viewport,
+// not a paginated table page (see the bbox branch of GET /reports).
+export function useReportPins(bbox: Bbox) {
+  return useQuery({
+    queryKey: ["reports", "pins", bbox],
+    queryFn: async () => {
+      const { data } = await api.get<ReportsPage>("/reports", { params: bbox });
+      return data.items;
+    },
+    refetchInterval: 60_000,
+  });
+}
+
 export function useUpdateReportStatus() {
   const qc = useQueryClient();
   return useMutation({
@@ -74,5 +90,38 @@ export function useRecommendations() {
       const { data } = await api.get<{ items: Recommendation[] }>("/recommendations");
       return data.items;
     },
+  });
+}
+
+// --- user management (admin only) ---
+
+export function useUsers(params: { page: number; role?: UserRole; q?: string }) {
+  return useQuery({
+    queryKey: ["users", params],
+    queryFn: async () => {
+      const { data } = await api.get<UsersPageResult>("/users", { params });
+      return data;
+    },
+  });
+}
+
+export function useUpdateUserRole() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, role }: { id: string; role: UserRole }) => {
+      const { data } = await api.patch<AppUser>(`/users/${id}`, { role });
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["users"] }),
+  });
+}
+
+export function useDeleteUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await api.delete(`/users/${id}`);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["users"] }),
   });
 }

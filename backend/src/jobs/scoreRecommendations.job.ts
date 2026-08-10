@@ -12,13 +12,18 @@ import { logger } from "../config/logger";
 // writes a human-readable reason for the top candidates; the AI never
 // changes the ranking itself, so the pipeline degrades gracefully to the
 // plain formula if OPENROUTER_API_KEY is unset or the call fails.
+// Below 4G counts as "underserved" for tower-siting purposes — 4G/4G+/5G
+// cells are considered adequately served and don't factor into the ranking.
+const UNDERSERVED_STATUSES = ["none", "2g", "3g"];
+
 export async function scoreRecommendations(): Promise<{ ranked: number }> {
   const groups = await Cell.aggregate([
-    { $match: { status: { $in: ["red", "yellow"] } } },
+    { $match: { status: { $in: UNDERSERVED_STATUSES } } },
     {
       $group: {
         _id: "$h3_r7",
-        redCells: { $sum: { $cond: [{ $eq: ["$status", "red"] }, 1, 0] } },
+        noSignalCells: { $sum: { $cond: [{ $eq: ["$status", "none"] }, 1, 0] } },
+        subFourGCells: { $sum: { $cond: [{ $in: ["$status", ["2g", "3g"]] }, 1, 0] } },
         totalCells: { $sum: 1 },
         reportCount: { $sum: "$reportCount" },
         sampleCount: { $sum: "$sampleCount" },
@@ -37,17 +42,18 @@ export async function scoreRecommendations(): Promise<{ ranked: number }> {
       const avgConfidence = g.avgConfidence ?? 1;
 
       // Population proxy is weighted like a fourth "report-equivalent" —
-      // a weak-coverage area near a populated town outranks an equally
-      // weak but empty one. The whole thing is then scaled by how
-      // confident we are in the underlying cells: a block of real
-      // measured "no signal" cells should outrank an equally bad-looking
-      // block that's mostly the model's low-confidence guess.
+      // a no-signal area near a populated town outranks an equally bad
+      // but empty one. The whole thing is then scaled by how confident we
+      // are in the underlying cells: a block of real measured "no signal"
+      // cells should outrank an equally bad-looking block that's mostly
+      // the model's low-confidence guess.
       const rawScore =
-        g.redCells * 3 + g.reportCount * 2 + Math.max(0, 5 - g.sampleCount) + populationProxy * 4;
+        g.noSignalCells * 3 + g.subFourGCells * 1.5 + g.reportCount * 2 + Math.max(0, 5 - g.sampleCount) + populationProxy * 4;
       const score = rawScore * (0.5 + avgConfidence * 0.5);
 
       const reasons: string[] = [];
-      if (g.redCells > 0) reasons.push(`${g.redCells} uncovered cell(s) nearby`);
+      if (g.noSignalCells > 0) reasons.push(`${g.noSignalCells} cell(s) with no signal nearby`);
+      if (g.subFourGCells > 0) reasons.push(`${g.subFourGCells} cell(s) stuck on 2G/3G`);
       if (g.reportCount > 0) reasons.push(`${g.reportCount} user report(s)`);
       if (g.sampleCount < 5) reasons.push("low sample density");
       if (populationProxy > 0.05) reasons.push(`near ${nearestTown} (population proxy ${populationProxy.toFixed(2)})`);
@@ -59,7 +65,8 @@ export async function scoreRecommendations(): Promise<{ ranked: number }> {
         score,
         reportCount: g.reportCount,
         sampleCount: g.sampleCount,
-        redCells: g.redCells,
+        noSignalCells: g.noSignalCells,
+        subFourGCells: g.subFourGCells,
         totalCells: g.totalCells,
         reasons,
         populationProxy,
@@ -74,7 +81,8 @@ export async function scoreRecommendations(): Promise<{ ranked: number }> {
 
   const candidates: RecommendationCandidate[] = scored.map((s) => ({
     h3_r7: s.h3_r7,
-    redCells: s.redCells,
+    noSignalCells: s.noSignalCells,
+    subFourGCells: s.subFourGCells,
     totalCells: s.totalCells,
     reportCount: s.reportCount,
     sampleCount: s.sampleCount,

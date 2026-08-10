@@ -9,7 +9,15 @@ import { ApiError } from "../../middleware/error";
 
 export const cellsRouter = Router();
 
-const MAX_BBOX_DEGREES = 5; // roughly a few hundred km on a side; prevents whole-country dumps
+// Laos itself spans ~8.6° lat x ~7.5° lng end to end, so the cap has to
+// clear that for the dashboard's "All Laos" view — this still isn't
+// "unlimited": it's sized to the one country this app covers, not an
+// arbitrary large-area guard.
+const MAX_BBOX_DEGREES = 10;
+// ~40-46k cells exist nationwide at any time (see predictCoverage.job.ts's
+// full-country grid) — capped comfortably above that so a whole-country
+// request doesn't silently truncate and leave gaps on the map.
+const MAX_CELLS_RETURNED = 50000;
 
 const bboxSchema = z.object({
   minLng: z.coerce.number(),
@@ -36,22 +44,36 @@ cellsRouter.get(
         },
       },
     };
-    if (q.operator) filter["operatorStats.operator"] = q.operator;
+    // Predicted cells never carry operatorStats — the interpolation/prior
+    // model doesn't know which carrier it's guessing about — so an operator
+    // filter must not throw them out too, or the map goes blank everywhere
+    // except the handful of cells that operator has real measurements in.
+    // They stay visible (as the model's general estimate) for every
+    // operator; only *measured* cells get filtered down to that operator's
+    // own data.
+    if (q.operator) filter.$or = [{ "operatorStats.operator": q.operator }, { predicted: true }];
 
-    const cells = await Cell.find(filter).limit(5000).lean();
-    const features = cells.map((c) => ({
-      type: "Feature" as const,
-      properties: {
-        h3: c._id,
-        status: c.status,
-        avgDownloadKbps: c.avgDownloadKbps,
-        sampleCount: c.sampleCount,
-        reportCount: c.reportCount,
-        predicted: c.predicted,
-        confidence: c.confidence,
-      },
-      geometry: { type: "Polygon" as const, coordinates: [cellPolygon(c._id)] },
-    }));
+    const cells = await Cell.find(filter).limit(MAX_CELLS_RETURNED).lean();
+    const features = cells.map((c) => {
+      // Filtered to one operator: show *that operator's* status/speed, not
+      // the cell's overall best-across-operators blend — a cell with great
+      // Unitel coverage and no Tplus coverage shouldn't show Unitel's
+      // numbers when the map is filtered down to Tplus.
+      const opStat = q.operator ? c.operatorStats.find((o) => o.operator === q.operator) : undefined;
+      return {
+        type: "Feature" as const,
+        properties: {
+          h3: c._id,
+          status: opStat?.status ?? c.status,
+          avgDownloadKbps: opStat?.avgDownloadKbps ?? c.avgDownloadKbps,
+          sampleCount: opStat?.sampleCount ?? c.sampleCount,
+          reportCount: c.reportCount,
+          predicted: c.predicted,
+          confidence: c.confidence,
+        },
+        geometry: { type: "Polygon" as const, coordinates: [cellPolygon(c._id)] },
+      };
+    });
     res.json({ type: "FeatureCollection", features });
   })
 );

@@ -9,7 +9,8 @@ import { logger } from "../config/logger";
 
 export interface RecommendationCandidate {
   h3_r7: string;
-  redCells: number;
+  noSignalCells: number;
+  subFourGCells: number;
   totalCells: number;
   reportCount: number;
   sampleCount: number;
@@ -24,19 +25,21 @@ export interface RecommendationCandidate {
 
 const MAX_AI_CANDIDATES = 20;
 
-const SYSTEM_PROMPT = `You are the recommendation engine for RuralNet Map, a crowdsourced \
-connectivity-mapping tool for rural Laos. For each candidate area you receive stats on: \
-how many nearby hex cells have no/weak signal, user-submitted outage reports, measurement \
-sample density, a population-density proxy (0..1, gravity-modeled from distance to the \
-nearest known town — 1 is as dense as central Vientiane), and a confidence score (0..1) — \
-some of an area's cells may be real measurements and some may be the model's *predicted* \
-status for hexes nobody has actually visited, interpolated from nearby measurements or, \
-failing that, the population proxy. Low confidence means more of the area is a guess, not \
-ground truth. Write one short (<=30 words) reason an ISP or government planner would \
-understand for why this area deserves a new tower, blending the signal gap, how populated it \
-likely is, and — when confidence is notably low or high — say so plainly (e.g. "mostly modeled, \
-low confidence" or "confirmed by direct measurements"). Be concrete and reference the numbers \
-you were given. Respond with ONLY a JSON array, no markdown fences, no commentary: \
+const SYSTEM_PROMPT = `You are the recommendation engine for Connect4All, a crowdsourced \
+connectivity-mapping tool for rural Laos. Cells are classified by network generation — none, \
+2G, 3G, 4G, 4G+, or 5G — not just signal strength. For each candidate area you receive stats \
+on: how many nearby hex cells have no signal at all vs. are stuck on 2G/3G, user-submitted \
+outage reports, measurement sample density, a population-density proxy (0..1, gravity-modeled \
+from distance to the nearest known town — 1 is as dense as central Vientiane), and a \
+confidence score (0..1) — some of an area's cells may be real measurements and some may be \
+the model's *predicted* status for hexes nobody has actually visited, interpolated from \
+nearby measurements or, failing that, the population proxy. Low confidence means more of the \
+area is a guess, not ground truth. Write one short (<=30 words) reason an ISP or government \
+planner would understand for why this area deserves a new tower or an upgrade, blending the \
+generation gap (e.g. "stuck on 2G", "no signal at all"), how populated it likely is, and — \
+when confidence is notably low or high — say so plainly (e.g. "mostly modeled, low confidence" \
+or "confirmed by direct measurements"). Be concrete and reference the numbers you were given. \
+Respond with ONLY a JSON array, no markdown fences, no commentary: \
 [{"h3_r7": "...", "summary": "..."}, ...]`;
 
 function extractJsonArray(text: string): unknown {
@@ -67,7 +70,8 @@ export async function generateAiSummaries(
   const userPrompt = JSON.stringify(
     top.map((c) => ({
       h3_r7: c.h3_r7,
-      uncoveredCellsNearby: c.redCells,
+      noSignalCellsNearby: c.noSignalCells,
+      subFourGCellsNearby: c.subFourGCells,
       totalCellsInArea: c.totalCells,
       userReports: c.reportCount,
       measurementSamples: c.sampleCount,

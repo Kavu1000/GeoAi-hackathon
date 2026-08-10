@@ -58,12 +58,18 @@ function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): nu
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-const STATUS_SCORE: Record<CellStatus, number> = { green: 1, yellow: 0.5, red: 0 };
+// Network generation maps onto a 0..1 scale so IDW interpolation (a
+// continuous weighted average) has something numeric to blend — same idea
+// as the old 3-tier green/yellow/red score, just with 6 steps now.
+const STATUS_SCORE: Record<CellStatus, number> = { none: 0, "2g": 0.2, "3g": 0.4, "4g": 0.6, "4g_plus": 0.8, "5g": 1 };
 
 function scoreToStatus(score: number): CellStatus {
-  if (score >= 0.66) return "green";
-  if (score >= 0.33) return "yellow";
-  return "red";
+  if (score >= 0.9) return "5g";
+  if (score >= 0.7) return "4g_plus";
+  if (score >= 0.5) return "4g";
+  if (score >= 0.3) return "3g";
+  if (score >= 0.1) return "2g";
+  return "none";
 }
 
 function bucketKey(lat: number, lng: number): string {
@@ -130,8 +136,11 @@ export function predictCellStatus(
   }
 
   // No nearby ground truth at all — fall back to the population prior.
+  // Rural Laos context: even close to a town, assume 3G rather than 4G/5G
+  // without real evidence — this is a guess, not an interpolation, and
+  // should skew conservative.
   const pop = populationProxyScore(lat, lng);
-  const score = pop >= 0.5 ? 0.45 : pop >= 0.2 ? 0.3 : 0.1;
+  const score = pop >= 0.5 ? 0.45 : pop >= 0.2 ? 0.25 : 0.05;
   const confidence = Math.min(0.5, 0.15 + pop * 0.35);
   return { status: scoreToStatus(score), confidence: Number(confidence.toFixed(2)) };
 }

@@ -6,12 +6,48 @@ import { logger } from "../config/logger";
 
 const LOOKBACK_DAYS = 30;
 
-function classify(avgDownloadKbps: number, sampleCount: number, reportCount: number): CellStatus {
-  if (sampleCount === 0 && reportCount >= 3) return "red";
-  if (sampleCount === 0) return "red";
-  if (avgDownloadKbps >= 5000) return "green";
-  if (avgDownloadKbps >= 500) return "yellow";
-  return "red";
+interface RawSample {
+  operator?: string;
+  downloadKbps?: number;
+  networkType?: string;
+}
+
+// Best-observed network generation per cell, worst to best. "wifi" isn't a
+// cellular generation, but a wifi reading still means "this spot has decent
+// connectivity" — for the coverage map's purposes it's treated as being as
+// good as the top cellular tier rather than excluded outright.
+const NETWORK_RANK: Record<string, number> = { none: 0, "2g": 1, "3g": 2, "4g": 3, wifi: 5, "5g": 5 };
+// A 4G reading only reads as "4g_plus" once its own average throughput
+// clears this bar — plain NETWORK_TYPE_LTE doesn't distinguish real 4G from
+// carrier-aggregated LTE-Advanced, so this is a throughput-based proxy for
+// that distinction, not a true carrier-aggregation detection.
+const FOUR_G_PLUS_KBPS = 15000; // ~15 Mbps
+
+function classify(samples: RawSample[]): CellStatus {
+  if (samples.length === 0) return "none";
+
+  // Best-observed generation wins — a coverage map should show what's
+  // achievable at a spot, not the worst reading a device happened to get.
+  let bestType = "none";
+  let bestRank = -1;
+  for (const s of samples) {
+    const type = s.networkType ?? "none";
+    const rank = NETWORK_RANK[type] ?? 0;
+    if (rank > bestRank) {
+      bestRank = rank;
+      bestType = type;
+    }
+  }
+
+  if (bestType === "none") return "none";
+  if (bestType === "5g" || bestType === "wifi") return "5g";
+  if (bestType === "4g") {
+    const fourGSamples = samples.filter((s) => (s.networkType ?? "none") === "4g");
+    const avg =
+      fourGSamples.reduce((sum, s) => sum + (s.downloadKbps ?? 0), 0) / Math.max(1, fourGSamples.length);
+    return avg >= FOUR_G_PLUS_KBPS ? "4g_plus" : "4g";
+  }
+  return bestType as CellStatus; // "2g" | "3g"
 }
 
 // Recomputes every h3_r8 cell's status from the last LOOKBACK_DAYS of samples + reports.
@@ -28,7 +64,7 @@ export async function aggregateCells(): Promise<{ cellsUpdated: number }> {
         avgDownloadKbps: { $avg: "$downloadKbps" },
         avgSignalDbm: { $avg: "$signalDbm" },
         sampleCount: { $sum: 1 },
-        operators: { $push: { operator: "$operator", downloadKbps: "$downloadKbps" } },
+        samples: { $push: { operator: "$operator", downloadKbps: "$downloadKbps", networkType: "$networkType" } },
       },
     },
   ]);
@@ -39,7 +75,7 @@ export async function aggregateCells(): Promise<{ cellsUpdated: number }> {
   ]);
   const reportCountByCell = new Map(reportCounts.map((r) => [r._id as string, r.count as number]));
 
-  // Cells with reports but no measurements still need a document (likely red).
+  // Cells with reports but no measurements still need a document (likely "none").
   const h3Set = new Set<string>(measurementAgg.map((m) => m._id));
   for (const key of reportCountByCell.keys()) h3Set.add(key);
 
@@ -51,23 +87,26 @@ export async function aggregateCells(): Promise<{ cellsUpdated: number }> {
     const reportCount = reportCountByCell.get(h3) ?? 0;
     const avgDownloadKbps = m?.avgDownloadKbps ?? 0;
     const sampleCount = m?.sampleCount ?? 0;
-    const status = classify(avgDownloadKbps, sampleCount, reportCount);
+    const samples = (m?.samples as RawSample[] | undefined) ?? [];
+    const status = classify(samples);
 
-    const operatorStats = m
-      ? Object.values(
-          (m.operators as { operator?: string; downloadKbps?: number }[]).reduce(
-            (acc, o) => {
-              if (!o.operator) return acc;
-              const cur = acc[o.operator] ?? { operator: o.operator, total: 0, sampleCount: 0 };
-              cur.total += o.downloadKbps ?? 0;
-              cur.sampleCount += 1;
-              acc[o.operator] = cur;
-              return acc;
-            },
-            {} as Record<string, { operator: string; total: number; sampleCount: number }>
-          )
-        ).map((o) => ({ operator: o.operator, avgDownloadKbps: o.total / o.sampleCount, sampleCount: o.sampleCount }))
-      : [];
+    // Per-operator status, not just the cell's overall blended one — a cell
+    // with great Unitel coverage and no Tplus coverage shouldn't show
+    // Unitel's numbers when someone filters the map down to Tplus.
+    const samplesByOperator = samples.reduce(
+      (acc, s) => {
+        if (!s.operator) return acc;
+        (acc[s.operator] ??= []).push(s);
+        return acc;
+      },
+      {} as Record<string, RawSample[]>
+    );
+    const operatorStats = Object.entries(samplesByOperator).map(([operator, opSamples]) => ({
+      operator,
+      avgDownloadKbps: opSamples.reduce((sum, s) => sum + (s.downloadKbps ?? 0), 0) / opSamples.length,
+      sampleCount: opSamples.length,
+      status: classify(opSamples),
+    }));
 
     ops.push(
       Cell.findByIdAndUpdate(

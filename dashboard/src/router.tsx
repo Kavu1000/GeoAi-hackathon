@@ -5,6 +5,7 @@ import { OverviewPage } from "./features/overview/OverviewPage";
 import { CoverageMapPage } from "./features/coverage-map/CoverageMapPage";
 import { ReportsPage } from "./features/reports/ReportsPage";
 import { RecommendationsPage } from "./features/recommendations/RecommendationsPage";
+import { UsersPage } from "./features/users/UsersPage";
 
 export const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
@@ -16,6 +17,7 @@ export const router = createBrowserRouter([
       { path: "map", element: <CoverageMapPage /> },
       { path: "reports", element: <ReportsPage /> },
       { path: "recommendations", element: <RecommendationsPage /> },
+      { path: "users", element: <UsersPage /> },
     ],
   },
 ]);
