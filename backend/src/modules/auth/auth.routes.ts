@@ -42,7 +42,10 @@ authRouter.post(
     const { email, password, role } = registerSchema.parse(req.body);
     const existing = await User.findOne({ email });
     if (existing) throw new ApiError(409, "email_taken");
-    const passwordHash = await bcrypt.hash(password, 12);
+    // Cost 10 (not 12) — Render's free-tier shared vCPU is throttled hard
+    // enough that bcryptjs at 12 rounds can run past the platform's request
+    // timeout and get the connection killed before it ever responds.
+    const passwordHash = await bcrypt.hash(password, 10);
     const user = await User.create({ email, passwordHash, role, deviceId: `dash-${email}` });
     const accessToken = signAccessToken({ sub: user._id.toString(), role: user.role });
     const refreshToken = signRefreshToken({ sub: user._id.toString() });
@@ -69,7 +72,7 @@ authRouter.post(
     const { email, password, locale, role } = signupSchema.parse(req.body);
     const existing = await User.findOne({ email });
     if (existing) throw new ApiError(409, "email_taken");
-    const passwordHash = await bcrypt.hash(password, 12);
+    const passwordHash = await bcrypt.hash(password, 10);
     const user = await User.create({ email, passwordHash, role, locale, deviceId: `client-${email}` });
     const accessToken = signAccessToken({ sub: user._id.toString(), role: user.role });
     const refreshToken = signRefreshToken({ sub: user._id.toString() });
