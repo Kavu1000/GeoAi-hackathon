@@ -5,10 +5,8 @@ import { GeoJsonLayer } from "@deck.gl/layers";
 import { PathStyleExtension } from "@deck.gl/extensions";
 import type { PickingInfo } from "@deck.gl/core";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { useCells, useSubmitMeasurement } from "../../api/hooks";
+import { useCells } from "../../api/hooks";
 import { useMapStore, type Bbox } from "../../store/mapStore";
-import { useConsentStore } from "../../store/consentStore";
-import { captureSignalReport } from "../speed-test/captureSignalReport";
 import type { CellFeature } from "../../api/types";
 import { CELL_STATUS_ORDER, STATUS_HEX, STATUS_LABEL, statusHexRgba } from "../../api/networkStatus";
 import { LAOS_PROVINCES, ALL_LAOS_BBOX, ALL_LAOS_ZOOM } from "../../data/laosProvinces";
@@ -74,13 +72,6 @@ function parseViewHash(hash: string): { zoom: number; lat: number; lon: number }
 }
 const INITIAL_VIEW_HASH = parseViewHash(window.location.hash);
 
-// Module-level, not component state: React Router unmounts/remounts this
-// page on every navigation away and back, so a component-scoped ref would
-// silently re-trigger a fresh GPS fix + speed test on every tab switch back
-// to the map. This guarantees at most one auto-capture attempt per browser
-// tab session (reset only by a full page reload).
-let hasAutoCapturedThisSession = false;
-
 function writeViewHash(longitude: number, latitude: number, zoom: number): void {
   const next = `#${zoom.toFixed(2)}/${latitude.toFixed(5)}/${longitude.toFixed(5)}`;
   // replaceState, not a hash assignment — the map shouldn't fill the
@@ -129,44 +120,11 @@ export function CoverageMapPage() {
   const [focusedProvince, setFocusedProvince] = useState<string | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const shareLocationEnabled = useConsentStore((s) => s.shareLocationEnabled);
-  const setShareLocationEnabled = useConsentStore((s) => s.setShareLocationEnabled);
-  const submitMeasurement = useSubmitMeasurement();
 
   useEffect(() => {
     const syncFullscreenState = () => setIsFullscreen(document.fullscreenElement === mapContainerRef.current);
     document.addEventListener("fullscreenchange", syncFullscreenState);
     return () => document.removeEventListener("fullscreenchange", syncFullscreenState);
-  }, []);
-
-  // Auto-capture a location + signal reading the instant the map loads —
-  // the browser's own geolocation prompt is the visible consent gate, the
-  // "Auto-share" toggle in MapControls is the reversible control. Fails
-  // silently in general (this is passive/implicit, unlike SpeedTestPage's
-  // explicit user-initiated flow) except on a permission denial, where it
-  // flips the toggle off so it never shows "On" while silently failing.
-  useEffect(() => {
-    if (hasAutoCapturedThisSession || !shareLocationEnabled) return;
-    hasAutoCapturedThisSession = true;
-    captureSignalReport()
-      .then((report) => {
-        submitMeasurement.mutate({
-          lat: report.lat,
-          lng: report.lng,
-          accuracyM: report.accuracyM,
-          networkType: report.networkType,
-          latencyMs: report.latencyMs,
-          downloadKbps: report.downloadKbps,
-          source: "speedtest",
-          recordedAt: new Date().toISOString(),
-        });
-      })
-      .catch((err: unknown) => {
-        if (err instanceof GeolocationPositionError && err.code === GeolocationPositionError.PERMISSION_DENIED) {
-          setShareLocationEnabled(false);
-        }
-      });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function toggleFullscreen() {
@@ -265,8 +223,6 @@ export function CoverageMapPage() {
           onBasemapToggle={() => setBasemap((b) => (b === "streets" ? "satellite" : "streets"))}
           terrainOn={terrainOn}
           onTerrainToggle={() => setTerrainOn((enabled) => !enabled)}
-          shareLocationEnabled={shareLocationEnabled}
-          onShareLocationToggle={() => setShareLocationEnabled(!shareLocationEnabled)}
         />
         {focusedProvince && (
           <div className="map-focus-status">
@@ -394,8 +350,6 @@ function MapControls({
   onBasemapToggle,
   terrainOn,
   onTerrainToggle,
-  shareLocationEnabled,
-  onShareLocationToggle,
 }: {
   operator: string;
   onOperatorChange: (operator: string) => void;
@@ -405,8 +359,6 @@ function MapControls({
   onBasemapToggle: () => void;
   terrainOn: boolean;
   onTerrainToggle: () => void;
-  shareLocationEnabled: boolean;
-  onShareLocationToggle: () => void;
 }) {
   return (
     <div className="map-controls">
@@ -452,14 +404,6 @@ function MapControls({
         title="Show elevation in a tilted 3D view"
       >
         ⛰️ 3D terrain
-      </button>
-      <button
-        type="button"
-        className={`map-select map-toggle-btn${shareLocationEnabled ? " map-toggle-btn-active" : ""}`}
-        onClick={onShareLocationToggle}
-        title="Automatically share a location + speed reading when you open this map"
-      >
-        📡 Auto-share: {shareLocationEnabled ? "On" : "Off"}
       </button>
     </div>
   );

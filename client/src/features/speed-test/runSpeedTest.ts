@@ -6,24 +6,27 @@ export interface SpeedTestResult {
   downloadKbps: number;
 }
 
-const PAYLOAD_BYTES = 2_000_000; // 2MB — same probe size the mobile app uses
+export const DEFAULT_PAYLOAD_BYTES = 2_000_000; // 2MB — same probe size the mobile app uses
 
 // Pings /health for latency, then downloads a known-size payload from
 // /speedtest/payload and derives kbps from bytes-per-second. Mirrors
 // mobile/lib/features/measurement/domain/run_speed_test.dart so both
-// clients measure the same way.
-export async function runSpeedTest(): Promise<SpeedTestResult> {
+// clients measure the same way. `bytes` is overridable — RecordPage's
+// repeated ticks use a much smaller probe than a one-shot manual test,
+// since downloading the full 2MB every ~30s while recording would be a
+// heavy, unreasonable data cost for a passive background page.
+export async function runSpeedTest(bytes: number = DEFAULT_PAYLOAD_BYTES): Promise<SpeedTestResult> {
   const pingStart = performance.now();
   await api.get("/health");
   const latencyMs = Math.round(performance.now() - pingStart);
 
   const downloadStart = performance.now();
   await api.get("/speedtest/payload", {
-    params: { bytes: PAYLOAD_BYTES },
+    params: { bytes },
     responseType: "arraybuffer",
   });
   const elapsedSeconds = (performance.now() - downloadStart) / 1000;
-  const downloadKbps = elapsedSeconds > 0 ? (PAYLOAD_BYTES * 8) / 1000 / elapsedSeconds : 0;
+  const downloadKbps = elapsedSeconds > 0 ? (bytes * 8) / 1000 / elapsedSeconds : 0;
 
   return { latencyMs, downloadKbps };
 }

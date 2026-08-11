@@ -4,7 +4,7 @@ import { useHexLiveSync } from "../../realtime/useHexLiveSync";
 
 const links: { to: string; label: string; end?: boolean }[] = [
   { to: "/", label: "Coverage Map", end: true },
-  { to: "/report", label: "Report coverage" },
+  { to: "/record", label: "Record" },
   { to: "/speedtest", label: "Test my speed" },
 ];
 

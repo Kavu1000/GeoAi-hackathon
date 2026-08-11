@@ -3,7 +3,7 @@ import { AppLayout } from "./components/layout/AppLayout";
 import { LoginPage } from "./features/auth/LoginPage";
 import { RegisterPage } from "./features/auth/RegisterPage";
 import { CoverageMapPage } from "./features/coverage-map/CoverageMapPage";
-import { ReportCoveragePage } from "./features/report-coverage/ReportCoveragePage";
+import { RecordPage } from "./features/record/RecordPage";
 import { SpeedTestPage } from "./features/speed-test/SpeedTestPage";
 
 export const router = createBrowserRouter([
@@ -14,7 +14,7 @@ export const router = createBrowserRouter([
     element: <AppLayout />,
     children: [
       { index: true, element: <CoverageMapPage /> },
-      { path: "report", element: <ReportCoveragePage /> },
+      { path: "record", element: <RecordPage /> },
       { path: "speedtest", element: <SpeedTestPage /> },
     ],
   },

@@ -12,12 +12,12 @@ export interface SignalReport {
 
 // navigator.geolocation.getCurrentPosition -> runSpeedTest() -> a ready-to-
 // submit report. Extracted out of SpeedTestPage's manual button flow so
-// CoverageMapPage can run the exact same capture automatically on load
-// (gated by consentStore) without duplicating the logic. Rejects with the
-// raw GeolocationPositionError on a location failure (callers that care
-// about PERMISSION_DENIED specifically can check err.code), or a plain
-// Error if the speed test itself fails.
-export function captureSignalReport(): Promise<SignalReport> {
+// RecordPage's repeated ticks can run the exact same capture (with a
+// smaller `bytes` probe, see runSpeedTest) without duplicating the logic.
+// Rejects with the raw GeolocationPositionError on a location failure
+// (callers that care about PERMISSION_DENIED specifically can check
+// err.code), or a plain Error if the speed test itself fails.
+export function captureSignalReport(bytes?: number): Promise<SignalReport> {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
       reject(new Error("geolocation_unavailable"));
@@ -25,7 +25,7 @@ export function captureSignalReport(): Promise<SignalReport> {
     }
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
-        runSpeedTest()
+        runSpeedTest(bytes)
           .then((speed) =>
             resolve({
               lat: coords.latitude,

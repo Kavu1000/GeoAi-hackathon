@@ -23,39 +23,6 @@ export interface CellFeatureCollection {
   features: CellFeature[];
 }
 
-export type ReportStatus = "new" | "reviewed" | "resolved";
-
-export interface Report {
-  _id: string;
-  userId: string;
-  location: { type: "Point"; coordinates: [number, number] };
-  h3_r7: string;
-  h3_r8: string;
-  category: string;
-  signal_type?: string;
-  province?: string;
-  operator?: string;
-  comment?: string;
-  status: ReportStatus;
-  createdAt: string;
-}
-
-export interface CreateReportPayload {
-  lat: number;
-  lng: number;
-  signal_type: string;
-  operator?: string;
-  province?: string;
-  comment?: string;
-}
-
-export interface ReportsPage {
-  items: Report[];
-  total: number;
-  page: number;
-  limit: number;
-}
-
 // Mirrors the mobile app's speed-test sample shape (see
 // mobile/lib/features/measurement/domain/measurement_sample.dart) so both
 // clients feed the same /measurements/batch contract.
@@ -72,6 +39,6 @@ export interface MeasurementSample {
   latencyMs?: number;
   downloadKbps?: number;
   uploadKbps?: number;
-  source: "auto" | "speedtest";
+  source: "auto" | "speedtest" | "recording";
   recordedAt: string;
 }

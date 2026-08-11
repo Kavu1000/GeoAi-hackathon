@@ -2,7 +2,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { api } from "./client";
 import { useAuthStore } from "../store/authStore";
 import type { Bbox } from "../store/mapStore";
-import type { CellFeatureCollection, CreateReportPayload, MeasurementSample, Report } from "./types";
+import type { CellFeatureCollection, MeasurementSample } from "./types";
 
 export function useLogin() {
   const setSession = useAuthStore((s) => s.setSession);
@@ -39,15 +39,6 @@ export function useCells(bbox: Bbox, operator: string | null) {
       return data;
     },
     refetchInterval: 60_000,
-  });
-}
-
-export function useCreateReport() {
-  return useMutation({
-    mutationFn: async (payload: CreateReportPayload) => {
-      const { data } = await api.post<Report>("/reports", payload);
-      return data;
-    },
   });
 }
 
