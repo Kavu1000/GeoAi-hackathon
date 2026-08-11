@@ -19,11 +19,16 @@ import { notFoundHandler, errorHandler } from "./middleware/error";
 export function createApp() {
   const app = express();
 
-  // Railway sits in front of this app as a reverse proxy — without this,
-  // req.ip resolves to the proxy's address for every request, which would
-  // make an IP-keyed rate limit (see measurements/speedtest routes) either
-  // bucket every user together or do nothing useful.
-  app.set("trust proxy", 1);
+  // Railway sits in front of this app behind its own edge network, whose
+  // exact hop count isn't something we control or can rely on staying
+  // fixed — `true` trusts the whole X-Forwarded-For chain and takes the
+  // left-most (original client) entry, which is the standard
+  // recommendation for platforms like Railway/Render/Heroku where you
+  // don't know the precise proxy depth. A numeric hop count here silently
+  // resolves to the wrong address if it doesn't match reality, which makes
+  // an IP-keyed rate limit (see measurements/speedtest routes) either
+  // bucket every user together or never trigger at all.
+  app.set("trust proxy", true);
 
   app.use(helmet());
   app.use(cors({ origin: corsOriginHandler() }));
