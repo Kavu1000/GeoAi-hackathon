@@ -7,8 +7,10 @@ import 'package:workmanager/workmanager.dart';
 import '../config/env.dart';
 import '../connectivity/connectivity_service.dart';
 import '../location/location_service.dart';
+import '../network/auth_interceptor.dart';
 import '../storage/isar_service.dart';
 import '../storage/outbox_item.dart';
+import '../storage/secure_storage.dart';
 import '../telephony/signal_service.dart';
 import 'outbox_dao.dart';
 import 'sync_engine.dart';
@@ -26,9 +28,19 @@ void callbackDispatcher() {
       await IsarService.open();
 
       final dio = Dio(BaseOptions(baseUrl: Env.apiBaseUrl));
-      const storage = FlutterSecureStorage();
-      final token = await storage.read(key: 'access_token');
-      if (token != null) dio.options.headers['Authorization'] = 'Bearer $token';
+      const secureStorage = SecureStorageService(FlutterSecureStorage());
+      dio.interceptors.add(InterceptorsWrapper(
+        onRequest: (options, handler) async {
+          final token = await secureStorage.readAccessToken();
+          if (token != null) options.headers['Authorization'] = 'Bearer $token';
+          handler.next(options);
+        },
+      ));
+      // Same expired-token problem as the app's main Dio (see
+      // auth_interceptor.dart) — this isolate is long-lived across many
+      // 15-minute WorkManager runs sharing the same stored token, so it hits
+      // the 15-minute access-token expiry just as reliably.
+      dio.interceptors.add(buildAuthRetryInterceptor(dio: dio, secureStorage: secureStorage));
 
       final dao = OutboxDao(IsarService.instance);
 

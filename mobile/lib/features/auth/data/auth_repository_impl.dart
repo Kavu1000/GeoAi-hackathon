@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:uuid/uuid.dart';
 import '../../../core/storage/secure_storage.dart';
+import 'auth_api.dart';
 
 class AuthRepository {
   final Dio dio;
@@ -21,8 +22,8 @@ class AuthRepository {
       await secureStorage.writeDeviceId(deviceId);
     }
 
-    final res = await dio.post('/auth/device', data: {'deviceId': deviceId, 'locale': 'lo'});
-    await secureStorage.writeAccessToken(res.data['accessToken'] as String);
-    await secureStorage.writeRefreshToken(res.data['refreshToken'] as String);
+    final data = await AuthApi.registerDevice(dio, deviceId: deviceId);
+    await secureStorage.writeAccessToken(data['accessToken'] as String);
+    await secureStorage.writeRefreshToken(data['refreshToken'] as String);
   }
 }

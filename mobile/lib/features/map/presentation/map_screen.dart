@@ -99,48 +99,67 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           IconButton(icon: const Icon(Icons.settings_outlined), onPressed: () => context.push(Routes.settings)),
         ],
       ),
-      body: Stack(
-        children: [
-          FlutterMap(
-            mapController: _mapController,
-            options: MapOptions(
-              initialCenter: _initialCenter,
-              initialZoom: 11,
-              onMapEvent: _onMapEvent,
-            ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          // MapControlsBar (top-left) and LegendChip (top-right) each used
+          // to carry their own fixed maxWidth (220 + 260 = 480), which is
+          // wider than most phone screens — on anything narrower than that
+          // they visibly overlapped, both at rest and worse once a dropdown
+          // menu opened over the mess. Deriving one shared half-width from
+          // the actual viewport guarantees left + gap + right never exceeds
+          // it; clamping to each widget's own preferred max keeps them from
+          // ballooning unnecessarily wide on a tablet.
+          const hMargin = 12.0, gap = 12.0;
+          final halfWidth = (constraints.maxWidth - hMargin * 2 - gap) / 2;
+          final controlsWidth = halfWidth.clamp(0, 220).toDouble();
+          final legendWidth = halfWidth.clamp(0, 260).toDouble();
+
+          return Stack(
             children: [
-              _satellite
-                  ? TileLayer(
-                      urlTemplate: _satelliteTileUrl,
-                      userAgentPackageName: 'com.connect4all.app',
-                      tileProvider: TileCache.satelliteTileProvider(),
-                    )
-                  : TileLayer(
-                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      userAgentPackageName: 'com.connect4all.app',
-                      // Serves cached tiles offline (dead zones are the whole
-                      // point of this app) and caches new ones when online.
-                      tileProvider: TileCache.tileProvider(),
-                    ),
-              PolygonLayer<Object>(
-                polygons: cellsAsync.value?.map(_toPolygon).toList() ?? const [],
+              FlutterMap(
+                mapController: _mapController,
+                options: MapOptions(
+                  initialCenter: _initialCenter,
+                  initialZoom: 11,
+                  onMapEvent: _onMapEvent,
+                ),
+                children: [
+                  _satellite
+                      ? TileLayer(
+                          urlTemplate: _satelliteTileUrl,
+                          userAgentPackageName: 'com.connect4all.app',
+                          tileProvider: TileCache.satelliteTileProvider(),
+                        )
+                      : TileLayer(
+                          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                          userAgentPackageName: 'com.connect4all.app',
+                          // Serves cached tiles offline (dead zones are the
+                          // whole point of this app) and caches new ones
+                          // when online.
+                          tileProvider: TileCache.tileProvider(),
+                        ),
+                  PolygonLayer<Object>(
+                    polygons: cellsAsync.value?.map(_toPolygon).toList() ?? const [],
+                  ),
+                ],
               ),
+              Positioned(
+                top: hMargin,
+                left: hMargin,
+                child: MapControlsBar(
+                  focusedProvince: _focusedProvince,
+                  onProvinceChange: _onProvinceChange,
+                  satellite: _satellite,
+                  onBasemapToggle: () => setState(() => _satellite = !_satellite),
+                  maxWidth: controlsWidth,
+                ),
+              ),
+              Positioned(top: hMargin, right: hMargin, child: LegendChip(maxWidth: legendWidth)),
+              if (cellsAsync.isLoading)
+                const Positioned(bottom: 12, left: 12, child: CircularProgressIndicator(strokeWidth: 2)),
             ],
-          ),
-          Positioned(
-            top: 12,
-            left: 12,
-            child: MapControlsBar(
-              focusedProvince: _focusedProvince,
-              onProvinceChange: _onProvinceChange,
-              satellite: _satellite,
-              onBasemapToggle: () => setState(() => _satellite = !_satellite),
-            ),
-          ),
-          const Positioned(top: 12, right: 12, child: LegendChip()),
-          if (cellsAsync.isLoading)
-            const Positioned(bottom: 12, left: 12, child: CircularProgressIndicator(strokeWidth: 2)),
-        ],
+          );
+        },
       ),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'speedtest',

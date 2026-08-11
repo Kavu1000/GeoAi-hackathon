@@ -13,6 +13,10 @@ class MapControlsBar extends ConsumerWidget {
   final ValueChanged<LaosProvince?> onProvinceChange;
   final bool satellite;
   final VoidCallback onBasemapToggle;
+  // Caller-supplied ceiling so this bar and LegendChip (the other floating
+  // panel sharing the map's top edge) can never claim more than half the
+  // screen each — see map_screen.dart. Defaults to the old fixed value.
+  final double maxWidth;
 
   const MapControlsBar({
     super.key,
@@ -20,6 +24,7 @@ class MapControlsBar extends ConsumerWidget {
     required this.onProvinceChange,
     required this.satellite,
     required this.onBasemapToggle,
+    this.maxWidth = 220,
   });
 
   static const _dropdownTextStyle = TextStyle(color: Colors.white, fontSize: 13);
@@ -29,7 +34,7 @@ class MapControlsBar extends ConsumerWidget {
     final operator = ref.watch(selectedOperatorProvider);
 
     return Container(
-      constraints: const BoxConstraints(maxWidth: 220),
+      constraints: BoxConstraints(maxWidth: maxWidth),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.65),
@@ -46,8 +51,15 @@ class MapControlsBar extends ConsumerWidget {
             underline: const SizedBox(),
             style: _dropdownTextStyle,
             items: [
-              const DropdownMenuItem(value: '__all__', child: Text('All Laos')),
-              for (final p in laosProvinces) DropdownMenuItem(value: p.name, child: Text(p.name)),
+              const DropdownMenuItem(
+                value: '__all__',
+                child: Text('All Laos', overflow: TextOverflow.ellipsis, maxLines: 1),
+              ),
+              for (final p in laosProvinces)
+                DropdownMenuItem(
+                  value: p.name,
+                  child: Text(p.name, overflow: TextOverflow.ellipsis, maxLines: 1),
+                ),
             ],
             onChanged: (name) {
               if (name == null) return;
@@ -60,7 +72,13 @@ class MapControlsBar extends ConsumerWidget {
             dropdownColor: Colors.black87,
             underline: const SizedBox(),
             style: _dropdownTextStyle,
-            items: [for (final o in laosOperators) DropdownMenuItem(value: o.value, child: Text(o.label))],
+            items: [
+              for (final o in laosOperators)
+                DropdownMenuItem(
+                  value: o.value,
+                  child: Text(o.label, overflow: TextOverflow.ellipsis, maxLines: 1),
+                ),
+            ],
             onChanged: (value) {
               if (value != null) ref.read(selectedOperatorProvider.notifier).state = value;
             },

@@ -28,6 +28,10 @@ class RecordState {
   final DateTime? lastUploadAt;
   final bool online;
   final String? error;
+  // Distinguishes "GPS/Location is switched off at the OS level" from any
+  // other error string, so the UI can offer a direct "Open location
+  // settings" action instead of just describing the problem in text.
+  final bool locationServiceDisabled;
 
   const RecordState({
     this.status = RecordStatus.idle,
@@ -38,6 +42,7 @@ class RecordState {
     this.lastUploadAt,
     this.online = true,
     this.error,
+    this.locationServiceDisabled = false,
   });
 
   RecordState copyWith({
@@ -50,6 +55,7 @@ class RecordState {
     DateTime? lastUploadAt,
     bool? online,
     String? error,
+    bool locationServiceDisabled = false,
   }) =>
       RecordState(
         status: status ?? this.status,
@@ -60,6 +66,7 @@ class RecordState {
         lastUploadAt: lastUploadAt ?? this.lastUploadAt,
         online: online ?? this.online,
         error: error,
+        locationServiceDisabled: locationServiceDisabled,
       );
 }
 
@@ -97,14 +104,19 @@ class RecordController extends Notifier<RecordState> {
       sentCount: stats.sentCount,
       rejectedCount: stats.rejectedCount,
       lastUploadAt: stats.lastUploadAt,
+      // Preserve whatever location warning is currently showing — a manual
+      // pull-to-refresh of the upload stats shouldn't silently dismiss it.
+      error: state.error,
+      locationServiceDisabled: state.locationServiceDisabled,
     );
   }
 
   Future<void> start() async {
     if (state.status == RecordStatus.recording) return;
-    final hasPermission = await LocationService().ensurePermission();
-    if (!hasPermission) {
-      state = state.copyWith(status: RecordStatus.error, error: 'Location permission is required to record.');
+    final availability = await LocationService().checkAvailability();
+    if (availability != LocationAvailability.ok) {
+      state = state.copyWith(status: RecordStatus.error, error: _availabilityMessage(availability),
+          locationServiceDisabled: availability == LocationAvailability.serviceDisabled);
       return;
     }
     state = state.copyWith(status: RecordStatus.recording, error: null);
@@ -124,8 +136,23 @@ class RecordController extends Notifier<RecordState> {
 
   Future<void> _tick() async {
     try {
+      // Checked separately from getCurrentPosition() (which would also just
+      // return null here) so a disabled GPS/permission surfaces as a
+      // specific, visible reason instead of the session silently doing
+      // nothing every 8s with the counters frozen at 0 and no clue why —
+      // that silence was the actual bug being fixed here. Recording keeps
+      // running: if the user turns GPS back on, the very next tick clears
+      // this automatically, no need to stop/start again.
+      final availability = await LocationService().checkAvailability();
+      if (availability != LocationAvailability.ok) {
+        state = state.copyWith(
+          error: _availabilityMessage(availability),
+          locationServiceDisabled: availability == LocationAvailability.serviceDisabled,
+        );
+        return;
+      }
       final position = await LocationService().getCurrentPosition();
-      if (position == null) return; // permission revoked or GPS off mid-session — skip this tick, keep recording
+      if (position == null) return; // timed out acquiring a fix — try again next interval
       final signal = await SignalService().read();
       final sample = MeasurementSample(
         lat: position.latitude,
@@ -137,6 +164,11 @@ class RecordController extends Notifier<RecordState> {
         recordedAt: DateTime.now(),
       );
       await _dao.enqueue(OutboxKind.measurement, jsonEncode(sample.toJson()));
+      // A tick just succeeded, so any stale "permission required"/"GPS is
+      // off" warning from an earlier tick no longer applies — clear it
+      // before refreshStats() (which now preserves whatever error is
+      // already set, see above) locks it back in.
+      if (state.error != null) state = state.copyWith(error: null);
       await refreshStats();
       unawaited(_drain());
     } catch (_) {
@@ -154,4 +186,11 @@ class RecordController extends Notifier<RecordState> {
     ).drain();
     await refreshStats();
   }
+
+  String _availabilityMessage(LocationAvailability availability) => switch (availability) {
+        LocationAvailability.permissionDenied => 'Location permission is required to record.',
+        LocationAvailability.serviceDisabled =>
+          'Location services (GPS) are turned off. Turn them on, then try again.',
+        LocationAvailability.ok => '',
+      };
 }

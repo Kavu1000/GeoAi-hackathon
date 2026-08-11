@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import '../../../app/router/routes.dart';
 import '../../../l10n/generated/app_localizations.dart';
@@ -34,7 +35,8 @@ class RecordScreen extends ConsumerWidget {
           children: [
             Text(t.recordSubtitle, style: Theme.of(context).textTheme.bodyMedium),
             const SizedBox(height: 16),
-            if (state.error != null) _ErrorBanner(message: state.error!),
+            if (state.error != null)
+              _ErrorBanner(message: state.error!, showOpenSettings: state.locationServiceDisabled),
             _StatusCard(state: state, recording: recording, onToggle: () => recording ? controller.stop() : controller.start()),
             const SizedBox(height: 16),
             _WaitingCard(state: state, onTryUploadNow: controller.tryUploadNow),
@@ -47,10 +49,12 @@ class RecordScreen extends ConsumerWidget {
 
 class _ErrorBanner extends StatelessWidget {
   final String message;
-  const _ErrorBanner({required this.message});
+  final bool showOpenSettings;
+  const _ErrorBanner({required this.message, this.showOpenSettings = false});
 
   @override
   Widget build(BuildContext context) {
+    final onError = Theme.of(context).colorScheme.onErrorContainer;
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(14),
@@ -58,7 +62,23 @@ class _ErrorBanner extends StatelessWidget {
         color: Theme.of(context).colorScheme.errorContainer,
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Text(message, style: TextStyle(color: Theme.of(context).colorScheme.onErrorContainer)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(message, style: TextStyle(color: onError)),
+          if (showOpenSettings) ...[
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton(
+                style: TextButton.styleFrom(foregroundColor: onError, padding: EdgeInsets.zero),
+                onPressed: () => Geolocator.openLocationSettings(),
+                child: const Text('Open location settings'),
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

@@ -50,7 +50,12 @@ class SyncEngine {
         // 4xx (bad payload, validation failure) will never succeed on
         // retry — drop it and count it as rejected rather than backing it
         // off forever. Anything else (network error, 5xx) is presumed
-        // temporary and stays queued.
+        // temporary and stays queued. A 401 here specifically means
+        // dio_client.dart's auth-retry interceptor already tried refreshing
+        // the session once and that *also* failed (e.g. fully offline, or
+        // the backend's auth endpoints are down) — not the ordinary case
+        // this comment originally described, but still non-retryable by
+        // this point.
         if (status != null && status >= 400 && status < 500) {
           await dao.deleteAll(chunk);
           await stats?.recordRejected(chunk.length);

@@ -3,7 +3,14 @@ import '../../../../app/theme/coverage_colors.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 
 class LegendChip extends StatelessWidget {
-  const LegendChip({super.key});
+  // Caller-supplied ceiling so this chip and MapControlsBar (the other
+  // floating panel sharing the map's top edge) can never claim more than
+  // half the screen each — see map_screen.dart, which computes this from
+  // the actual viewport width instead of two independent fixed widths that
+  // happened to add up to more than a phone screen. Defaults to the old
+  // fixed value for any other/future caller with room to spare.
+  final double maxWidth;
+  const LegendChip({super.key, this.maxWidth = 260});
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +28,7 @@ class LegendChip extends StatelessWidget {
     // rows as the available width needs, so everything stays visible
     // without a scroll gesture the user has to discover.
     return Container(
-      constraints: const BoxConstraints(maxWidth: 260),
+      constraints: BoxConstraints(maxWidth: maxWidth),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.65),

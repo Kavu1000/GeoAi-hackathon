@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../config/env.dart';
 import '../storage/secure_storage.dart';
+import 'auth_interceptor.dart';
 
 final dioProvider = Provider<Dio>((ref) {
   final dio = Dio(BaseOptions(
@@ -21,6 +22,7 @@ final dioProvider = Provider<Dio>((ref) {
       handler.next(options);
     },
   ));
+  dio.interceptors.add(buildAuthRetryInterceptor(dio: dio, secureStorage: secureStorage));
 
   return dio;
 });
