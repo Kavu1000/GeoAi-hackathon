@@ -52,15 +52,14 @@ cellsRouter.get(
     // operator; only *measured* cells get filtered down to that operator's
     // own data.
     //
-    // Real cells with an empty operatorStats get the same treatment: the
-    // web client can't read a device's carrier name (no browser equivalent
-    // of Android's TelephonyManager), so anything submitted from the
-    // website never has an `operator` on it and never populates
-    // operatorStats — without this, every web-submitted reading would be
-    // silently invisible under any operator filter, even though it's real,
-    // attributable-to-no-one-specifically data worth showing regardless.
-    if (q.operator)
-      filter.$or = [{ "operatorStats.operator": q.operator }, { predicted: true }, { operatorStats: { $size: 0 } }];
+    // Real cells with an empty operatorStats (e.g. web-submitted readings —
+    // browsers can't read a device's carrier, so those never populate
+    // operatorStats) correctly stay hidden under a specific operator
+    // filter: we have no idea which carrier that reading was actually on,
+    // so showing it as if it were, say, Unitel's coverage would be
+    // misattributing real data to an operator it was never confirmed to be
+    // from. It still counts toward the cell's overall (unfiltered) picture.
+    if (q.operator) filter.$or = [{ "operatorStats.operator": q.operator }, { predicted: true }];
 
     const cells = await Cell.find(filter).limit(MAX_CELLS_RETURNED).lean();
     const features = cells.map((c) => {
