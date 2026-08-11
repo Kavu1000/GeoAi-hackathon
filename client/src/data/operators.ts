@@ -10,5 +10,8 @@ export interface Operator {
 export const LAOS_OPERATORS: Operator[] = [
   { value: "Unitel", label: "Unitel Mobile" },
   { value: "ETL", label: "ETL Mobile" },
-  { value: "Tplus", label: "Tplus Mobile" },
+  // Matches mobile's MobileOperator.laoTelecom wireValue exactly (see
+  // mobile/lib/features/report/domain/report_payload.dart) — the actual
+  // third Laos operator the app reports against, not "Tplus".
+  { value: "Lao Telecom", label: "Lao Telecom" },
 ];
