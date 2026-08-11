@@ -11,6 +11,10 @@ class TileCache {
   TileCache._();
 
   static const _store = FMTCStore('osmStore');
+  // Separate store for satellite imagery — a different raster style than
+  // the streets basemap, so caching them together would mean switching
+  // basemaps constantly evicts/mixes unrelated tiles in one store.
+  static const _satelliteStore = FMTCStore('satelliteStore');
 
   /// Call once during bootstrap, before the first map screen builds.
   static Future<void> init() async {
@@ -18,7 +22,11 @@ class TileCache {
     if (!await _store.manage.ready) {
       await _store.manage.create();
     }
+    if (!await _satelliteStore.manage.ready) {
+      await _satelliteStore.manage.create();
+    }
   }
 
   static FMTCTileProvider tileProvider() => _store.getTileProvider();
+  static FMTCTileProvider satelliteTileProvider() => _satelliteStore.getTileProvider();
 }
