@@ -7,6 +7,7 @@ import '../../../core/storage/isar_service.dart';
 import '../../../core/storage/outbox_item.dart';
 import '../../../core/sync/outbox_dao.dart';
 import '../../../core/sync/sync_engine.dart';
+import '../../../core/sync/sync_stats.dart';
 import '../../../core/telephony/signal_service.dart';
 import '../domain/measurement_sample.dart';
 import '../domain/run_speed_test.dart';
@@ -66,6 +67,7 @@ class SpeedTestController extends Notifier<SpeedTestState> {
         dio: ref.read(dioProvider),
         dao: dao,
         connectivity: ref.read(connectivityServiceProvider),
+        stats: ref.read(syncStatsProvider),
       ).drain().ignore();
 
       state = state.copyWith(status: SpeedTestStatus.done, result: result);

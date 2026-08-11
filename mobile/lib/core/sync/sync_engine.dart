@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import '../connectivity/connectivity_service.dart';
 import '../storage/outbox_item.dart';
 import 'outbox_dao.dart';
+import 'sync_stats.dart';
 
 /// Drains the offline outbox to the backend. Measurements upload in batches
 /// of 50 via /measurements/batch; reports upload one at a time via /reports.
@@ -12,8 +13,9 @@ class SyncEngine {
   final Dio dio;
   final OutboxDao dao;
   final ConnectivityService connectivity;
+  final SyncStats? stats;
 
-  SyncEngine({required this.dio, required this.dao, required this.connectivity});
+  SyncEngine({required this.dio, required this.dao, required this.connectivity, this.stats});
 
   bool _running = false;
 
@@ -42,8 +44,19 @@ class SyncEngine {
       try {
         await dio.post('/measurements/batch', data: {'samples': samples});
         await dao.deleteAll(chunk);
-      } on DioException {
-        await dao.backoff(chunk);
+        await stats?.recordSent(chunk.length);
+      } on DioException catch (e) {
+        final status = e.response?.statusCode;
+        // 4xx (bad payload, validation failure) will never succeed on
+        // retry — drop it and count it as rejected rather than backing it
+        // off forever. Anything else (network error, 5xx) is presumed
+        // temporary and stays queued.
+        if (status != null && status >= 400 && status < 500) {
+          await dao.deleteAll(chunk);
+          await stats?.recordRejected(chunk.length);
+        } else {
+          await dao.backoff(chunk);
+        }
       }
     }
   }

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
 import '../config/env.dart';
 import '../connectivity/connectivity_service.dart';
@@ -11,6 +12,7 @@ import '../storage/outbox_item.dart';
 import '../telephony/signal_service.dart';
 import 'outbox_dao.dart';
 import 'sync_engine.dart';
+import 'sync_stats.dart';
 
 const backgroundSyncTaskName = 'connect4all.periodic_sample';
 
@@ -45,10 +47,12 @@ void callbackDispatcher() {
         await dao.enqueue(OutboxKind.measurement, jsonEncode(sample));
       }
 
+      final prefs = await SharedPreferences.getInstance();
       await SyncEngine(
         dio: dio,
         dao: dao,
         connectivity: ConnectivityService(Connectivity()),
+        stats: SyncStats(prefs),
       ).drain();
 
       return true;

@@ -7,7 +7,7 @@ class MeasurementSample {
   final int? latencyMs;
   final double? downloadKbps;
   final double? uploadKbps;
-  final String source; // "auto" | "speedtest"
+  final String source; // "auto" | "speedtest" | "recording"
   final DateTime recordedAt;
 
   const MeasurementSample({

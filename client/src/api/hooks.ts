@@ -2,7 +2,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { api } from "./client";
 import { useAuthStore } from "../store/authStore";
 import type { Bbox } from "../store/mapStore";
-import type { CellFeatureCollection, CreateReportPayload, MeasurementSample, Report, ReportsPage } from "./types";
+import type { CellFeatureCollection, CreateReportPayload, MeasurementSample, Report } from "./types";
 
 export function useLogin() {
   const setSession = useAuthStore((s) => s.setSession);
@@ -37,19 +37,6 @@ export function useCells(bbox: Bbox, operator: string | null) {
         params: { ...bbox, operator: operator ?? undefined },
       });
       return data;
-    },
-    refetchInterval: 60_000,
-  });
-}
-
-// Report pins for the coverage map — everything in the current viewport,
-// not a paginated table page (see the bbox branch of GET /reports).
-export function useReportPins(bbox: Bbox) {
-  return useQuery({
-    queryKey: ["reports", "pins", bbox],
-    queryFn: async () => {
-      const { data } = await api.get<ReportsPage>("/reports", { params: bbox });
-      return data.items;
     },
     refetchInterval: 60_000,
   });

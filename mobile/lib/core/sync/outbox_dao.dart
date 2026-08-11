@@ -45,4 +45,9 @@ class OutboxDao {
   }
 
   Future<int> pendingCount() => isar.outboxItems.count();
+
+  Future<DateTime?> oldestPending() async {
+    final oldest = await isar.outboxItems.where().sortByCreatedAt().findFirst();
+    return oldest?.createdAt;
+  }
 }

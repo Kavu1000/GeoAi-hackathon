@@ -1,13 +1,13 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Map as MapGL, Source, Layer } from "react-map-gl/maplibre";
 import DeckGL from "@deck.gl/react";
-import { GeoJsonLayer, IconLayer } from "@deck.gl/layers";
+import { GeoJsonLayer } from "@deck.gl/layers";
 import { PathStyleExtension } from "@deck.gl/extensions";
 import type { PickingInfo } from "@deck.gl/core";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { useCells, useReportPins } from "../../api/hooks";
+import { useCells } from "../../api/hooks";
 import { useMapStore, type Bbox } from "../../store/mapStore";
-import type { CellFeature, CellStatus, Report } from "../../api/types";
+import type { CellFeature } from "../../api/types";
 import { CELL_STATUS_ORDER, STATUS_HEX, STATUS_LABEL, statusHexRgba } from "../../api/networkStatus";
 import { LAOS_PROVINCES, ALL_LAOS_BBOX, ALL_LAOS_ZOOM } from "../../data/laosProvinces";
 import { LAOS_OPERATORS } from "../../data/operators";
@@ -30,17 +30,6 @@ const HIDE_PREDICTED_ZOOM = 14;
 // satellite imagery. The coverage colour remains visible; borders return
 // only when there are few enough cells on screen to inspect individually.
 const SHOW_HEX_BORDERS_ZOOM = 13;
-
-function getReportSignalStatus(r: Report): CellStatus {
-  const signal = (r.signal_type || r.category || "").toLowerCase().trim();
-  if (signal === "5g") return "5g";
-  if (signal === "4g+" || signal === "4g_plus" || signal === "4gplus") return "4g_plus";
-  if (signal === "4g") return "4g";
-  if (signal === "3g") return "3g";
-  if (signal === "2g") return "2g";
-  if (signal === "slow") return "2g";
-  return "none";
-}
 
 const MAP_STYLE = import.meta.env.VITE_MAP_STYLE || osmRasterStyle;
 
@@ -90,25 +79,6 @@ function writeViewHash(longitude: number, latitude: number, zoom: number): void 
   window.history.replaceState(null, "", next);
 }
 
-const PIN_ICON_SIZE = { width: 64, height: 88 };
-
-function pinDataUri(fillColor: string, strokeColor = "#ffffff"): string {
-  const { width: w, height: h } = PIN_ICON_SIZE;
-  const svg =
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">` +
-    `<path d="M32 2C16.5 2 4 14.5 4 30c0 20 28 56 28 56s28-36 28-56C60 14.5 47.5 2 32 2z" fill="${fillColor}" stroke="${strokeColor}" stroke-width="4"/>` +
-    `<circle cx="32" cy="30" r="10" fill="${strokeColor}" opacity="0.9"/>` +
-    `</svg>`;
-  return `data:image/svg+xml;base64,${btoa(svg)}`;
-}
-
-const STATUS_PIN_URI: Record<CellStatus, string> = Object.fromEntries(
-  CELL_STATUS_ORDER.map((s) => [s, pinDataUri(STATUS_HEX[s])])
-) as Record<CellStatus, string>;
-
-const ESTIMATE_TINT: [number, number, number, number] = [255, 255, 255, 165];
-const MEASURED_TINT: [number, number, number, number] = [255, 255, 255, 255];
-
 function zoomForSpan(span: number): number {
   return Math.max(8, Math.min(12, 12 - span * 3));
 }
@@ -134,29 +104,13 @@ function initialCameraFor(bbox: Bbox, hash: { zoom: number; lat: number; lon: nu
   };
 }
 
-const MIN_PIN_PX = 26;
-const MAX_PIN_PX = 56;
-function pinSizeForZoom(zoom: number): number {
-  const clamped = Math.min(16, Math.max(4, zoom));
-  return Math.round(Math.min(MAX_PIN_PX, Math.max(MIN_PIN_PX, MAX_PIN_PX - (clamped - 4) * 2.5)));
-}
-
-interface ReportWithCell {
-  report: Report;
-  cell: CellFeature["properties"] | null;
-  status: CellStatus;
-  isEstimate: boolean;
-}
-
 export function CoverageMapPage() {
   const bbox = useMapStore((s) => s.bbox);
   const operator = useMapStore((s) => s.operator);
   const setBbox = useMapStore((s) => s.setBbox);
   const setOperator = useMapStore((s) => s.setOperator);
   const { data } = useCells(bbox, operator);
-  const { data: reports } = useReportPins(bbox);
   const [hoverCell, setHoverCell] = useState<CellFeature["properties"] | null>(null);
-  const [hoverReportWithCell, setHoverReportWithCell] = useState<ReportWithCell | null>(null);
   const [zoom, setZoom] = useState(10);
   const [basemap, setBasemap] = useState<"streets" | "satellite">("streets");
   const [terrainOn, setTerrainOn] = useState(false);
@@ -178,7 +132,6 @@ export function CoverageMapPage() {
     }
   }
 
-  const pinSize = pinSizeForZoom(zoom);
   const hidePredicted = zoom > HIDE_PREDICTED_ZOOM;
   const showHexBorders = zoom >= SHOW_HEX_BORDERS_ZOOM;
 
@@ -187,26 +140,6 @@ export function CoverageMapPage() {
     if (!hidePredicted) return data;
     return { ...data, features: data.features.filter((f) => !f.properties.predicted) };
   }, [data, hidePredicted]);
-
-  const cellByH3 = useMemo<Map<string, CellFeature["properties"]>>(() => {
-    const m = new Map<string, CellFeature["properties"]>();
-    for (const f of data?.features ?? []) m.set(f.properties.h3, f.properties);
-    return m;
-  }, [data]);
-
-  const reportsWithCells = useMemo<ReportWithCell[]>(
-    () =>
-      (reports ?? []).map((r) => {
-        const cell = cellByH3.get(r.h3_r8) ?? null;
-        return {
-          report: r,
-          cell,
-          status: cell?.status ?? getReportSignalStatus(r),
-          isEstimate: cell === null,
-        };
-      }),
-    [reports, cellByH3]
-  );
 
   // A polygon with a hole over the selected province's focus bounds. DeckGL
   // dims the outside area while keeping the selected province clear.
@@ -263,27 +196,9 @@ export function CoverageMapPage() {
           }),
         ]
       : []),
-    new IconLayer<ReportWithCell>({
-      id: "report-pins",
-      data: reportsWithCells,
-      getPosition: (d) => d.report.location.coordinates as [number, number],
-      getIcon: (d) => ({
-        id: `report-pin-${d.status}`,
-        url: STATUS_PIN_URI[d.status],
-        width: PIN_ICON_SIZE.width,
-        height: PIN_ICON_SIZE.height,
-        anchorY: PIN_ICON_SIZE.height,
-      }),
-      getColor: (d) => (d.isEstimate ? ESTIMATE_TINT : MEASURED_TINT),
-      sizeUnits: "pixels",
-      getSize: pinSize,
-      updateTriggers: { getSize: zoom, getIcon: cellByH3, getColor: cellByH3 },
-      pickable: true,
-      onHover: (info: PickingInfo<ReportWithCell>) => setHoverReportWithCell(info.object ?? null),
-    }),
   ];
 
-  const hover = hoverReportWithCell ? null : hoverCell;
+  const hover = hoverCell;
 
   return (
     <div>
@@ -360,38 +275,6 @@ export function CoverageMapPage() {
           </MapGL>
         </DeckGL>
         <MapAttribution />
-
-        {/* ── Report pin tooltip ── */}
-        {hoverReportWithCell && (
-          <div className="map-tooltip">
-            <div>
-              <b>Signal:</b> {hoverReportWithCell.report.signal_type || hoverReportWithCell.report.category}
-              {hoverReportWithCell.isEstimate ? (
-                <span className="ai-badge" style={{ marginLeft: 6 }}>ESTIMATE</span>
-              ) : (
-                hoverReportWithCell.cell?.predicted && (
-                  <span className="ai-badge" style={{ marginLeft: 6 }}>PREDICTED</span>
-                )
-              )}
-            </div>
-            {hoverReportWithCell.report.province && (
-              <div>
-                <b>Province:</b> {hoverReportWithCell.report.province}
-              </div>
-            )}
-            <div>
-              <b>Operator:</b> {hoverReportWithCell.report.operator ?? "—"}
-            </div>
-            {hoverReportWithCell.report.comment && (
-              <div>
-                <b>Comment:</b> {hoverReportWithCell.report.comment}
-              </div>
-            )}
-            <div>
-              <b>Reported:</b> {new Date(hoverReportWithCell.report.createdAt).toLocaleString()}
-            </div>
-          </div>
-        )}
 
         {/* ── Hex cell tooltip ── */}
         {hover && (

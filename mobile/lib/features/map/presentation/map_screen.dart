@@ -96,23 +96,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             const Positioned(top: 12, left: 12, child: CircularProgressIndicator(strokeWidth: 2)),
         ],
       ),
-      floatingActionButton: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          FloatingActionButton.extended(
-            heroTag: 'report',
-            onPressed: () => context.push(Routes.report),
-            icon: const Icon(Icons.flag_outlined),
-            label: Text(t.mapReportAction),
-          ),
-          const SizedBox(height: 12),
-          FloatingActionButton.extended(
-            heroTag: 'speedtest',
-            onPressed: () => context.push(Routes.speedTest),
-            icon: const Icon(Icons.speed_outlined),
-            label: Text(t.mapSpeedTestAction),
-          ),
-        ],
+      floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'speedtest',
+        onPressed: () => context.push(Routes.speedTest),
+        icon: const Icon(Icons.speed_outlined),
+        label: Text(t.mapSpeedTestAction),
       ),
     );
   }

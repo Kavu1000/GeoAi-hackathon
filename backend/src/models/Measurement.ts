@@ -14,7 +14,7 @@ export interface MeasurementDoc {
   latencyMs?: number;
   downloadKbps?: number;
   uploadKbps?: number;
-  source: "auto" | "speedtest";
+  source: "auto" | "speedtest" | "recording";
   recordedAt: Date;
   createdAt: Date;
 }
@@ -33,7 +33,7 @@ const measurementSchema = new Schema<MeasurementDoc>({
   latencyMs: { type: Number },
   downloadKbps: { type: Number },
   uploadKbps: { type: Number },
-  source: { type: String, enum: ["auto", "speedtest"], default: "auto" },
+  source: { type: String, enum: ["auto", "speedtest", "recording"], default: "auto" },
   recordedAt: { type: Date, required: true },
   createdAt: { type: Date, default: () => new Date() },
 });

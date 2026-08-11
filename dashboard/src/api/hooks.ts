@@ -59,18 +59,6 @@ export function useReports(params: { status?: ReportStatus; page: number }) {
   });
 }
 
-// Report pins for the coverage map — everything in the current viewport,
-// not a paginated table page (see the bbox branch of GET /reports).
-export function useReportPins(bbox: Bbox) {
-  return useQuery({
-    queryKey: ["reports", "pins", bbox],
-    queryFn: async () => {
-      const { data } = await api.get<ReportsPage>("/reports", { params: bbox });
-      return data.items;
-    },
-    refetchInterval: 60_000,
-  });
-}
 
 export function useUpdateReportStatus() {
   const qc = useQueryClient();

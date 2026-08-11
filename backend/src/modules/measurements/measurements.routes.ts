@@ -16,7 +16,11 @@ const sampleSchema = z.object({
   latencyMs: z.number().nonnegative().optional(),
   downloadKbps: z.number().nonnegative().optional(),
   uploadKbps: z.number().nonnegative().optional(),
-  source: z.enum(["auto", "speedtest"]).default("auto"),
+  // "recording" = a sample taken during an active Record-screen session
+  // (see mobile's features/record) — same shape as "auto", just tagged
+  // separately so it's distinguishable in analytics from the 15-min
+  // passive background task.
+  source: z.enum(["auto", "speedtest", "recording"]).default("auto"),
   recordedAt: z.coerce.date(),
 });
 

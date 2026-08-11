@@ -4,7 +4,7 @@ import '../../core/storage/prefs.dart';
 import '../../features/map/presentation/map_screen.dart';
 import '../../features/measurement/presentation/speed_test_screen.dart';
 import '../../features/onboarding/presentation/onboarding_screen.dart';
-import '../../features/report/presentation/report_form_screen.dart';
+import '../../features/record/presentation/record_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
 import 'routes.dart';
 
@@ -22,8 +22,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     },
     routes: [
       GoRoute(path: Routes.onboarding, builder: (context, state) => const OnboardingScreen()),
-      GoRoute(path: Routes.home, builder: (context, state) => const MapScreen()),
-      GoRoute(path: Routes.report, builder: (context, state) => const ReportFormScreen()),
+      GoRoute(path: Routes.home, builder: (context, state) => const RecordScreen()),
+      GoRoute(path: Routes.map, builder: (context, state) => const MapScreen()),
       GoRoute(path: Routes.speedTest, builder: (context, state) => const SpeedTestScreen()),
       GoRoute(path: Routes.settings, builder: (context, state) => const SettingsScreen()),
     ],
