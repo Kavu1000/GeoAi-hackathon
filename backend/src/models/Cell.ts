@@ -21,6 +21,8 @@ export interface CellDoc {
   status: CellStatus;
   avgDownloadKbps: number;
   avgSignalDbm: number | null;
+  /** null when no sample in this cell ever reported latency — shown as "—" rather than 0ms. */
+  avgLatencyMs: number | null;
   sampleCount: number;
   reportCount: number;
   operatorStats: OperatorStat[];
@@ -42,6 +44,7 @@ const cellSchema = new Schema<CellDoc>(
     status: { type: String, enum: CELL_STATUS_VALUES, required: true, index: true },
     avgDownloadKbps: { type: Number, default: 0 },
     avgSignalDbm: { type: Number, default: null },
+    avgLatencyMs: { type: Number, default: null },
     sampleCount: { type: Number, default: 0 },
     reportCount: { type: Number, default: 0 },
     operatorStats: [

@@ -8,6 +8,8 @@ export interface CellFeature {
     h3: string;
     status: CellStatus;
     avgDownloadKbps: number;
+    /** null when no sample in this cell ever reported latency. */
+    avgLatencyMs: number | null;
     sampleCount: number;
     reportCount: number;
     predicted: boolean;

@@ -110,7 +110,10 @@ export function CoverageMapPage() {
   const setBbox = useMapStore((s) => s.setBbox);
   const setOperator = useMapStore((s) => s.setOperator);
   const { data } = useCells(bbox, operator);
-  const [hoverCell, setHoverCell] = useState<CellFeature["properties"] | null>(null);
+  // Click-to-open, not hover — a panel this detailed needs to stay put long
+  // enough to actually read, and hover made it disappear the instant the
+  // cursor drifted off the hex.
+  const [selectedCell, setSelectedCell] = useState<CellFeature["properties"] | null>(null);
   const [zoom, setZoom] = useState(10);
   const [basemap, setBasemap] = useState<"streets" | "satellite">("streets");
   const [terrainOn, setTerrainOn] = useState(false);
@@ -178,7 +181,7 @@ export function CoverageMapPage() {
       extensions: [new PathStyleExtension({ dash: true })],
       updateTriggers: { getFillColor: zoom, getLineColor: showHexBorders },
       pickable: true,
-      onHover: (info: PickingInfo) => setHoverCell((info.object as CellFeature | undefined)?.properties ?? null),
+      onClick: (info: PickingInfo) => setSelectedCell((info.object as CellFeature | undefined)?.properties ?? null),
     }),
     ...(provinceFocusMask
       ? [
@@ -198,7 +201,7 @@ export function CoverageMapPage() {
       : []),
   ];
 
-  const hover = hoverCell;
+  const selected = selectedCell;
 
   return (
     <div>
@@ -214,6 +217,7 @@ export function CoverageMapPage() {
           onProvinceChange={(nextBbox, provinceName) => {
             setBbox(nextBbox);
             setFocusedProvince(provinceName);
+            setSelectedCell(null);
           }}
           basemap={basemap}
           onBasemapToggle={() => setBasemap((b) => (b === "streets" ? "satellite" : "streets"))}
@@ -247,6 +251,7 @@ export function CoverageMapPage() {
           initialViewState={initialCameraFor(bbox, INITIAL_VIEW_HASH, terrainOn)}
           controller
           layers={layers}
+          getCursor={({ isHovering, isDragging }) => (isDragging ? "grabbing" : isHovering ? "pointer" : "grab")}
           onViewStateChange={({ viewState }) => {
             if (!("longitude" in viewState) || !("latitude" in viewState) || !("zoom" in viewState)) return;
             const { longitude, latitude, zoom: z } = viewState as { longitude: number; latitude: number; zoom: number };
@@ -276,24 +281,45 @@ export function CoverageMapPage() {
         </DeckGL>
         <MapAttribution />
 
-        {/* ── Hex cell tooltip ── */}
-        {hover && (
-          <div className="map-tooltip">
-            <div>
-              <b>Network:</b> {STATUS_LABEL[hover.status]}{" "}
-              {hover.predicted && <span className="ai-badge">PREDICTED</span>}
+        {/* ── Hex cell detail panel ── */}
+        {selected && (
+          <div className="map-detail-panel">
+            <button
+              type="button"
+              className="map-detail-close"
+              onClick={() => setSelectedCell(null)}
+              aria-label="Close cell details"
+            >
+              ×
+            </button>
+            <div className="map-detail-header">
+              <span className="map-detail-badge" style={{ background: STATUS_HEX[selected.status] }}>
+                {STATUS_LABEL[selected.status]}
+              </span>
+              {selected.predicted && <span className="ai-badge">PREDICTED</span>}
             </div>
-            <div>
-              <b>Avg download:</b> {Math.round(hover.avgDownloadKbps)} kbps
+            <div className="map-detail-stats">
+              <div className="map-detail-stat">
+                <span className="map-detail-stat-value">{Math.round(selected.avgDownloadKbps)}</span>
+                <span className="map-detail-stat-label">kbps download</span>
+              </div>
+              <div className="map-detail-stat">
+                <span className="map-detail-stat-value">
+                  {selected.avgLatencyMs != null ? Math.round(selected.avgLatencyMs) : "—"}
+                </span>
+                <span className="map-detail-stat-label">ms latency</span>
+              </div>
             </div>
-            <div>
-              <b>Samples:</b> {hover.sampleCount}
-            </div>
-            <div>
-              <b>Reports:</b> {hover.reportCount}
-            </div>
-            <div>
-              <b>Confidence:</b> {Math.round(hover.confidence * 100)}%
+            <div className="map-detail-secondary">
+              <div>
+                <b>Samples:</b> {selected.sampleCount}
+              </div>
+              <div>
+                <b>Reports:</b> {selected.reportCount}
+              </div>
+              <div>
+                <b>Confidence:</b> {Math.round(selected.confidence * 100)}%
+              </div>
             </div>
           </div>
         )}

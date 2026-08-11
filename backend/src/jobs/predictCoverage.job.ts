@@ -24,6 +24,18 @@ const STATUS_KBPS_ESTIMATE: Record<CellStatus, number> = {
   "5g": 80000,
 };
 
+// Same idea as STATUS_KBPS_ESTIMATE, but for round-trip latency — newer
+// generations aren't just faster, they're lower-latency. null for "none"
+// since there's no connection to time a round trip on.
+const STATUS_LATENCY_MS_ESTIMATE: Record<CellStatus, number | null> = {
+  none: null,
+  "2g": 700,
+  "3g": 250,
+  "4g": 60,
+  "4g_plus": 40,
+  "5g": 20,
+};
+
 // MODEL step, infill half: fills in every r7 hex across Laos that doesn't
 // already have real measurement/report data, using interpolation from
 // nearby measured cells (falling back to the population proxy where there's
@@ -66,6 +78,7 @@ export async function predictCoverage(): Promise<{ predicted: number; skipped: n
               status,
               avgDownloadKbps: STATUS_KBPS_ESTIMATE[status],
               avgSignalDbm: null,
+              avgLatencyMs: STATUS_LATENCY_MS_ESTIMATE[status],
               sampleCount: 0,
               reportCount: 0,
               operatorStats: [],

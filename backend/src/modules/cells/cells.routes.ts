@@ -66,6 +66,9 @@ cellsRouter.get(
           h3: c._id,
           status: opStat?.status ?? c.status,
           avgDownloadKbps: opStat?.avgDownloadKbps ?? c.avgDownloadKbps,
+          // Not tracked per-operator (operatorStats has no latency field) —
+          // this is always the cell's overall average, even when filtered.
+          avgLatencyMs: c.avgLatencyMs ?? null,
           sampleCount: opStat?.sampleCount ?? c.sampleCount,
           reportCount: c.reportCount,
           predicted: c.predicted,
