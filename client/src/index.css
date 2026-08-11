@@ -658,7 +658,9 @@ textarea {
 
 .map-tooltip {
   position: absolute;
-  top: 12px;
+  /* Stacked below .map-fullscreen-button (same top-right corner) so the two
+     never overlap — hovering a hex used to show a tooltip hidden behind it. */
+  top: 60px;
   right: 12px;
   background: rgba(255, 255, 255, 0.97);
   border: 1px solid var(--panel-border);
