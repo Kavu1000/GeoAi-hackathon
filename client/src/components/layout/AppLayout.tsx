@@ -1,5 +1,6 @@
 import { NavLink, Outlet, Navigate } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
+import { useHexLiveSync } from "../../realtime/useHexLiveSync";
 
 const links: { to: string; label: string; end?: boolean }[] = [
   { to: "/", label: "Coverage Map", end: true },
@@ -10,6 +11,10 @@ const links: { to: string; label: string; end?: boolean }[] = [
 export function AppLayout() {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
+  // Called unconditionally, before the early return below, to satisfy the
+  // Rules of Hooks — persists one socket connection across in-app
+  // navigation instead of reconnecting on every page.
+  useHexLiveSync();
 
   if (!user) return <Navigate to="/login" replace />;
 

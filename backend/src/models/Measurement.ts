@@ -11,6 +11,8 @@ export interface MeasurementDoc {
   operator?: string;
   networkType: NetworkType;
   signalDbm?: number;
+  /** GPS accuracy radius in meters, when the platform reports one — not populated by every caller (e.g. mobile doesn't send it yet). */
+  accuracyM?: number;
   latencyMs?: number;
   downloadKbps?: number;
   uploadKbps?: number;
@@ -30,6 +32,7 @@ const measurementSchema = new Schema<MeasurementDoc>({
   operator: { type: String },
   networkType: { type: String, enum: ["none", "2g", "3g", "4g", "5g", "wifi"], required: true },
   signalDbm: { type: Number },
+  accuracyM: { type: Number },
   latencyMs: { type: Number },
   downloadKbps: { type: Number },
   uploadKbps: { type: Number },

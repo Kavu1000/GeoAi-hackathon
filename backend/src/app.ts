@@ -2,8 +2,8 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import pinoHttp from "pino-http";
-import { env } from "./config/env";
 import { logger } from "./config/logger";
+import { corsOriginHandler } from "./config/cors";
 import { authRouter } from "./modules/auth/auth.routes";
 import { measurementsRouter } from "./modules/measurements/measurements.routes";
 import { reportsRouter } from "./modules/reports/reports.routes";
@@ -19,35 +19,14 @@ import { notFoundHandler, errorHandler } from "./middleware/error";
 export function createApp() {
   const app = express();
 
-  // Comma-separated list so the dashboard (admin/operator) and the public
-  // client site (residents/travellers) can both call this API in dev —
-  // e.g. "http://localhost:5173,http://localhost:5174". A single "*" still
-  // works (disables the allowlist) for anyone who hasn't split it up.
-  const allowedOrigins = env.CORS_ORIGIN.split(",").map((o) => o.trim());
-  // Vite moves to the next port when the preferred dev port is busy. Permit
-  // its usual local development range so starting the dashboard and client
-  // together cannot unexpectedly break signup/login preflight requests.
-  const isLocalViteOrigin = (origin: string) => {
-    try {
-      const url = new URL(origin);
-      const port = Number(url.port);
-      return (url.hostname === "localhost" || url.hostname === "127.0.0.1") && port >= 5173 && port <= 5179;
-    } catch {
-      return false;
-    }
-  };
+  // Railway sits in front of this app as a reverse proxy — without this,
+  // req.ip resolves to the proxy's address for every request, which would
+  // make an IP-keyed rate limit (see measurements/speedtest routes) either
+  // bucket every user together or do nothing useful.
+  app.set("trust proxy", 1);
+
   app.use(helmet());
-  app.use(
-    cors({
-      origin:
-        allowedOrigins.length === 1 && allowedOrigins[0] === "*"
-          ? "*"
-          : (origin, callback) => {
-              if (!origin || allowedOrigins.includes(origin) || isLocalViteOrigin(origin)) callback(null, true);
-              else callback(new Error("not allowed by CORS"));
-            },
-    })
-  );
+  app.use(cors({ origin: corsOriginHandler() }));
   app.use(express.json({ limit: "1mb" }));
   app.use(pinoHttp({ logger }));
 

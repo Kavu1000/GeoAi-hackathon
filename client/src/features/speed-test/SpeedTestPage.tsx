@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useSubmitMeasurement } from "../../api/hooks";
-import { detectNetworkType, runSpeedTest } from "./runSpeedTest";
+import { captureSignalReport } from "./captureSignalReport";
 
-type Status = "idle" | "locating" | "testing" | "done" | "error";
+type Status = "idle" | "busy" | "done" | "error";
 
 interface Result {
   latencyMs: number;
@@ -16,43 +16,32 @@ export function SpeedTestPage() {
   const submitMeasurement = useSubmitMeasurement();
 
   async function run() {
-    setStatus("locating");
+    setStatus("busy");
     setError("");
 
-    if (!navigator.geolocation) {
+    try {
+      const report = await captureSignalReport();
+      setResult(report);
+      setStatus("done");
+
+      submitMeasurement.mutate({
+        lat: report.lat,
+        lng: report.lng,
+        accuracyM: report.accuracyM,
+        networkType: report.networkType,
+        latencyMs: report.latencyMs,
+        downloadKbps: report.downloadKbps,
+        source: "speedtest",
+        recordedAt: new Date().toISOString(),
+      });
+    } catch (err) {
       setStatus("error");
-      setError("Location is unavailable in this browser.");
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      async ({ coords }) => {
-        setStatus("testing");
-        try {
-          const speed = await runSpeedTest();
-          setResult(speed);
-          setStatus("done");
-
-          submitMeasurement.mutate({
-            lat: coords.latitude,
-            lng: coords.longitude,
-            networkType: detectNetworkType(),
-            latencyMs: speed.latencyMs,
-            downloadKbps: speed.downloadKbps,
-            source: "speedtest",
-            recordedAt: new Date().toISOString(),
-          });
-        } catch {
-          setStatus("error");
-          setError("The speed test failed. Check your connection and try again.");
-        }
-      },
-      () => {
-        setStatus("error");
+      if (err instanceof GeolocationPositionError) {
         setError("We could not get your location. Check permission and try again.");
-      },
-      { enableHighAccuracy: true, timeout: 12_000, maximumAge: 60_000 }
-    );
+      } else {
+        setError("The speed test failed. Check your connection and try again.");
+      }
+    }
   }
 
   return (
@@ -74,8 +63,7 @@ export function SpeedTestPage() {
           </>
         )}
 
-        {status === "locating" && <SpeedTestBusy label="Finding your location…" />}
-        {status === "testing" && <SpeedTestBusy label="Testing your connection…" />}
+        {status === "busy" && <SpeedTestBusy label="Finding your location and testing your connection…" />}
 
         {status === "done" && result && (
           <>

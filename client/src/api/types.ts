@@ -67,6 +67,8 @@ export interface MeasurementSample {
   operator?: string;
   networkType: NetworkType;
   signalDbm?: number;
+  /** GPS accuracy radius in meters, from the browser's Geolocation API. */
+  accuracyM?: number;
   latencyMs?: number;
   downloadKbps?: number;
   uploadKbps?: number;

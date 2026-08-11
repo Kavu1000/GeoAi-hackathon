@@ -1,8 +1,11 @@
 import cron from "node-cron";
+import { Server } from "socket.io";
 import { createApp } from "./app";
 import { connectDb } from "./config/db";
 import { env } from "./config/env";
 import { logger } from "./config/logger";
+import { corsOriginHandler } from "./config/cors";
+import { setIo } from "./services/realtime.service";
 import { aggregateCells } from "./jobs/aggregateCells.job";
 import { scoreRecommendations } from "./jobs/scoreRecommendations.job";
 import { predictCoverage } from "./jobs/predictCoverage.job";
@@ -13,7 +16,13 @@ async function main() {
   await connectDb();
 
   const app = createApp();
-  app.listen(env.PORT, () => logger.info({ port: env.PORT }, "api listening"));
+  const httpServer = app.listen(env.PORT, () => logger.info({ port: env.PORT }, "api listening"));
+
+  // No auth on the socket — GET /cells (the same feature shape broadcast
+  // here) is already fully public/unauthenticated, so there's no
+  // confidentiality boundary a token would protect. CORS is still applied.
+  const io = new Server(httpServer, { cors: { origin: corsOriginHandler() } });
+  setIo(io);
 
   cron.schedule(env.AGGREGATION_CRON, async () => {
     try {
