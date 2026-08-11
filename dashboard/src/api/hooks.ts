@@ -5,11 +5,14 @@ import type { Bbox } from "../store/mapStore";
 import type {
   AppUser,
   CellFeatureCollection,
+  Forecast,
+  ForecastHorizon,
   Recommendation,
   Report,
   ReportsPage,
   ReportStatus,
   StatsOverview,
+  TowerEstimate,
   UserRole,
   UsersPageResult,
 } from "./types";
@@ -78,6 +81,48 @@ export function useRecommendations() {
       const { data } = await api.get<{ items: Recommendation[] }>("/recommendations");
       return data.items;
     },
+  });
+}
+
+export function useTowers(params: { region?: string; operator?: string }) {
+  return useQuery({
+    queryKey: ["towers", params],
+    queryFn: async () => {
+      const { data } = await api.get<{ items: TowerEstimate[] }>("/towers", { params });
+      return data.items;
+    },
+  });
+}
+
+export function useRecomputeTowers() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { data } = await api.post("/towers/recompute");
+      return data as { regionsProcessed: number; towersEstimated: number };
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["towers"] }),
+  });
+}
+
+export function useForecast(params: { horizon: ForecastHorizon; limit?: number }) {
+  return useQuery({
+    queryKey: ["forecast", params],
+    queryFn: async () => {
+      const { data } = await api.get<{ items: Forecast[]; horizon: ForecastHorizon }>("/forecast", { params });
+      return data.items;
+    },
+  });
+}
+
+export function useRecomputeForecast() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { data } = await api.post("/forecast/recompute");
+      return data as { ranked: number };
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["forecast"] }),
   });
 }
 

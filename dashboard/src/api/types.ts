@@ -98,3 +98,30 @@ export interface UsersPageResult {
   page: number;
   limit: number;
 }
+
+export interface TowerEstimate {
+  _id: string;
+  h3_r7: string;
+  operator: string;
+  location: { type: "Point"; coordinates: [number, number] };
+  method: string;
+  confidence: number;
+  observationCount: number;
+  estimatedRadiusM: number;
+  regionHexes: string[];
+  nearestTown: string;
+  lastUpdated: string;
+}
+
+export type ForecastHorizon = "now" | "1y" | "3y";
+
+export interface Forecast {
+  _id: string;
+  h3_r7: string;
+  centroid: { type: "Point"; coordinates: [number, number] };
+  rank: number;
+  score: number;
+  growthRatePercent: number;
+  nearestTown: string;
+  reasons: string[];
+}

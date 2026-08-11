@@ -5,6 +5,8 @@ import { OverviewPage } from "./features/overview/OverviewPage";
 import { CoverageMapPage } from "./features/coverage-map/CoverageMapPage";
 import { ReportsPage } from "./features/reports/ReportsPage";
 import { RecommendationsPage } from "./features/recommendations/RecommendationsPage";
+import { TowersPage } from "./features/towers/TowersPage";
+import { ForecastPage } from "./features/forecast/ForecastPage";
 import { UsersPage } from "./features/users/UsersPage";
 
 export const router = createBrowserRouter([
@@ -17,6 +19,8 @@ export const router = createBrowserRouter([
       { path: "map", element: <CoverageMapPage /> },
       { path: "reports", element: <ReportsPage /> },
       { path: "recommendations", element: <RecommendationsPage /> },
+      { path: "towers", element: <TowersPage /> },
+      { path: "forecast", element: <ForecastPage /> },
       { path: "users", element: <UsersPage /> },
     ],
   },

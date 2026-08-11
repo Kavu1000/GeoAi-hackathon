@@ -14,6 +14,15 @@ const schema = z.object({
   // slower-changing job than the 15-min real-data aggregation — runs once a
   // day by default. See jobs/predictCoverage.job.ts.
   PREDICTION_CRON: z.string().default("0 3 * * *"),
+  // Tower inference (Tier B — spatial clustering) is heavier than the
+  // 15-min aggregation but changes faster than daily prediction infill;
+  // sweeps for (region, operator) groups with enough new samples every
+  // 30 min rather than recomputing everything. See jobs/inferTowers.job.ts.
+  TOWER_INFERENCE_CRON: z.string().default("*/30 * * * *"),
+  // Population growth is slow-moving; recompute weekly rather than on the
+  // 15-min aggregation cron, same reasoning as PREDICTION_CRON. See
+  // jobs/computeForecast.job.ts.
+  FORECAST_CRON: z.string().default("0 4 * * 0"),
   // AI-assisted recommendation reasoning (MODEL step). Optional — scoring
   // falls back to the plain formula if unset. Get a key at openrouter.ai.
   OPENROUTER_API_KEY: z.string().optional(),

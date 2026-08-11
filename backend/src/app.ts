@@ -12,6 +12,8 @@ import { recommendationsRouter } from "./modules/recommendations/recommendations
 import { statsRouter } from "./modules/stats/stats.routes";
 import { speedtestRouter } from "./modules/speedtest/speedtest.routes";
 import { usersRouter } from "./modules/users/users.routes";
+import { towersRouter } from "./modules/towers/towers.routes";
+import { forecastRouter } from "./modules/forecast/forecast.routes";
 import { notFoundHandler, errorHandler } from "./middleware/error";
 
 export function createApp() {
@@ -59,6 +61,8 @@ export function createApp() {
   app.use("/stats", statsRouter);
   app.use("/speedtest", speedtestRouter);
   app.use("/users", usersRouter);
+  app.use("/towers", towersRouter);
+  app.use("/forecast", forecastRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

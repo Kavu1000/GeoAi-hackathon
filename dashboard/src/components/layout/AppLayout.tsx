@@ -6,6 +6,8 @@ const links: { to: string; label: string; end?: boolean }[] = [
   { to: "/map", label: "Coverage Map" },
   { to: "/reports", label: "Reports" },
   { to: "/recommendations", label: "Recommendations" },
+  { to: "/towers", label: "Towers" },
+  { to: "/forecast", label: "Forecast Planning" },
 ];
 
 const adminLinks: { to: string; label: string; end?: boolean }[] = [{ to: "/users", label: "Users" }];
