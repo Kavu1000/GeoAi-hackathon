@@ -11,7 +11,11 @@ export const LAOS_OPERATORS: Operator[] = [
   { value: "Unitel", label: "Unitel Mobile" },
   { value: "ETL", label: "ETL Mobile" },
   // Matches mobile's MobileOperator.laoTelecom wireValue exactly (see
-  // mobile/lib/features/report/domain/report_payload.dart) — the actual
-  // third Laos operator the app reports against, not "Tplus".
+  // mobile/lib/features/report/domain/report_payload.dart).
   { value: "Lao Telecom", label: "Lao Telecom" },
+  // A 4th, distinct operator — not mobile-reportable yet (mobile's
+  // MobileOperator enum doesn't have it), so this only ever matches
+  // web-submitted reports/measurements or ingested cell data that name it
+  // explicitly.
+  { value: "Tplus", label: "Tplus Mobile" },
 ];
