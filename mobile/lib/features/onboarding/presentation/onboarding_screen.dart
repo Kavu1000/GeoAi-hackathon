@@ -114,7 +114,16 @@ class _PermissionStep extends StatelessWidget {
           Text(t.onboardingLocationBody, textAlign: TextAlign.center),
           const SizedBox(height: 16),
           OutlinedButton(
-            onPressed: () => Permission.locationWhenInUse.request(),
+            onPressed: () async {
+              await Permission.locationWhenInUse.request();
+              // Same step, same "why": reading signal strength (Android's
+              // TelephonyManager) needs this dangerous permission granted at
+              // runtime too, not just declared in the manifest — asked for
+              // together here since both exist for the same map-coverage
+              // purpose, rather than surprising the user with a second
+              // prompt mid-recording later (see SignalService.read()).
+              await Permission.phone.request();
+            },
             child: Text(t.onboardingAllowLocation),
           ),
         ],

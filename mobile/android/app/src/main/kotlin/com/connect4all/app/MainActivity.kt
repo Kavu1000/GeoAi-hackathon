@@ -23,8 +23,23 @@ class MainActivity : FlutterActivity() {
 
     private fun readSignal(): Map<String, Any?> {
         val tm = getSystemService(TELEPHONY_SERVICE) as TelephonyManager
-        val networkType = networkTypeName(tm.dataNetworkType)
-        val operatorName = tm.networkOperatorName
+
+        // getDataNetworkType() also requires READ_PHONE_STATE on API 29+ and
+        // throws SecurityException without it — same story as signalStrength
+        // below. The Dart side now requests the permission before ever
+        // calling this, but this stays defensive rather than letting an
+        // unexpected throw here fail the whole read (and silently record
+        // every sample as "no signal") instead of just this one field.
+        val networkType: String = try {
+            networkTypeName(tm.dataNetworkType)
+        } catch (e: SecurityException) {
+            "none"
+        }
+        val operatorName: String? = try {
+            tm.networkOperatorName
+        } catch (e: SecurityException) {
+            null
+        }
 
         // SignalStrength.getCellSignalStrengths() requires API 30+; below that
         // we fall back to the legacy getLevel()-only accessor.
