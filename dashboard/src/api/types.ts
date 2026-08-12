@@ -47,6 +47,37 @@ export interface ReportsPage {
   limit: number;
 }
 
+// "auto" = the mobile app's 15-min passive background task; "speedtest" =
+// a manually-run speed test (mobile or client web); "recording" = a sample
+// taken during an active Record-screen session (mobile only, continuous).
+export type MeasurementSource = "auto" | "speedtest" | "recording";
+export type NetworkType = "none" | "2g" | "3g" | "4g" | "5g" | "wifi";
+
+export interface Measurement {
+  _id: string;
+  userId: string;
+  location: { type: "Point"; coordinates: [number, number] };
+  h3_r7: string;
+  h3_r8: string;
+  operator?: string;
+  networkType: NetworkType;
+  signalDbm?: number;
+  accuracyM?: number;
+  latencyMs?: number;
+  downloadKbps?: number;
+  uploadKbps?: number;
+  source: MeasurementSource;
+  recordedAt: string;
+  createdAt: string;
+}
+
+export interface MeasurementsPage {
+  items: Measurement[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
 export interface Recommendation {
   _id: string;
   h3_r7: string;

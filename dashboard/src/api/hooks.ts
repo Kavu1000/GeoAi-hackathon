@@ -7,6 +7,8 @@ import type {
   CellFeatureCollection,
   Forecast,
   ForecastHorizon,
+  MeasurementSource,
+  MeasurementsPage,
   Recommendation,
   Report,
   ReportsPage,
@@ -62,6 +64,19 @@ export function useReports(params: { status?: ReportStatus; page: number }) {
   });
 }
 
+
+// Raw mobile-app measurement records (Record-screen sessions, speed tests,
+// the passive background task) — the Reports page's "Mobile Records" view,
+// alongside user-submitted Reports.
+export function useMeasurements(params: { source?: MeasurementSource; page: number }) {
+  return useQuery({
+    queryKey: ["measurements", params],
+    queryFn: async () => {
+      const { data } = await api.get<MeasurementsPage>("/measurements", { params });
+      return data;
+    },
+  });
+}
 
 export function useUpdateReportStatus() {
   const qc = useQueryClient();

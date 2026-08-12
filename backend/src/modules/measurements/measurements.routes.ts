@@ -91,3 +91,36 @@ measurementsRouter.post(
       .catch((err) => logger.error({ err }, "incremental cell recompute failed"));
   })
 );
+
+const listSchema = z.object({
+  source: z.enum(["auto", "speedtest", "recording"]).optional(),
+  h3_r7: z.string().optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(25),
+});
+
+// Mirrors reports.routes.ts's GET / (same permission model — any signed-in
+// dashboard user can browse, no per-operator scoping in this app). Lets the
+// dashboard's Reports page show raw mobile-app measurement records
+// (Record-screen sessions, speed tests, the 15-min passive background
+// task) alongside user-submitted Reports, since until now the only way to
+// see this data was indirectly, aggregated into the map's Cell polygons.
+measurementsRouter.get(
+  "/",
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const q = listSchema.parse(req.query);
+    const filter: Record<string, unknown> = {};
+    if (q.source) filter.source = q.source;
+    if (q.h3_r7) filter.h3_r7 = q.h3_r7;
+
+    const [items, total] = await Promise.all([
+      Measurement.find(filter)
+        .sort({ recordedAt: -1 })
+        .skip((q.page - 1) * q.limit)
+        .limit(q.limit),
+      Measurement.countDocuments(filter),
+    ]);
+    res.json({ items, total, page: q.page, limit: q.limit });
+  })
+);
